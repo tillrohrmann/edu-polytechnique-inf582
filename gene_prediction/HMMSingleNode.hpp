@@ -12,8 +12,8 @@
 
 class HMMSingleNode: public HMMNode{
 public:
-	HMMSingleNode(int id, std::string name = "");
-	HMMSingleNode(int id, std::string name, const Transition& transitions, const Emission& emissions);
+	HMMSingleNode(int id=-1, const std::string& name = "");
+	HMMSingleNode(int id, const std::string& name, const Transition& transitions, const Emission& emissions);
 	virtual ~HMMSingleNode();
 };
 

@@ -7,10 +7,12 @@
 
 #include "HMMEmission.hpp"
 #include "Exceptions.hpp"
-#include <regex>
+#include <boost/regex.hpp>
 #include <sstream>
+#include <ostream>
+#include <istream>
 
-HMMEmission::HMMEmission(double probability, std::string emissionToken, bool constant):
+HMMEmission::HMMEmission(double probability,const std::string& emissionToken, bool constant):
 	_probabiltiy(probability), _emissionToken(emissionToken), _constant(constant){
 }
 
@@ -27,29 +29,31 @@ HMMEmission HMMEmission::deserialize(std::istream& is){
 	std::string emissionToken;
 	bool constant;
 	std::string line;
-	std::smatch sm;
+	boost::smatch sm;
 	std::istringstream ss;
 
 	std::getline(is,line);
 	std::getline(is,line);
-	if(std::regex_match(line,sm,std::regex("Probability:(.*)"))){
-		ss.str(sm[0]);
+	if(boost::regex_match(line,sm,boost::regex("Probability:(.*)"))){
+		ss.str(sm[1]);
 		ss >> probability;
+		ss.clear();
 	}else{
 		throw InvalidSerializationException("HMMEmission: Probability cannot be deserialized.");
 	}
 
 	std::getline(is,line);
-	if(std::regex_match(line,sm,std::regex("Token:(.*)"))){
-		emissionToken = sm[0];
+	if(boost::regex_match(line,sm,boost::regex("Token:(.*)"))){
+		emissionToken = sm[1];
 	}else{
 		throw InvalidSerializationException("HMMEmission: Emission token cannot be deserialized.");
 	}
 
 	std::getline(is,line);
-	if(std::regex_match(line,sm,std::regex("Constant:(.*)"))){
-		ss.str(sm[0]);
+	if(boost::regex_match(line,sm,boost::regex("Constant:(.*)"))){
+		ss.str(sm[1]);
 		ss >> constant;
+		ss.clear();
 	}else{
 		throw InvalidSerializationException("HMMEmission: Constant cannot be deserialized.");
 	}

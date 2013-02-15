@@ -7,10 +7,10 @@
 
 #include "HMMSingleNode.hpp"
 
-HMMSingleNode::HMMSingleNode(int id, std::string name): HMMNode(id,name){
+HMMSingleNode::HMMSingleNode(int id,const std::string& name): HMMNode(id,name){
 }
 
-HMMSingleNode::HMMSingleNode(int id, std::string name, const Transition& transitions, const Emission& emissions)
+HMMSingleNode::HMMSingleNode(int id,const std::string& name, const Transition& transitions, const Emission& emissions)
 	:HMMNode(id,name,transitions,emissions){
 }
 

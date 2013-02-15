@@ -6,7 +6,7 @@
  */
 
 #include "HMMTransition.hpp"
-#include <regex>
+#include <boost/regex.hpp>
 #include <sstream>
 #include "Exceptions.hpp"
 
@@ -29,32 +29,35 @@ HMMTransition HMMTransition::deserialize(std::istream& is){
 	std::string line;
 	std::istringstream ss;
 
-	std::smatch  sm;
+	boost::smatch  sm;
 
 	std::getline(is,line);
 	std::getline(is,line);
 
-	if(std::regex_match(line,sm,std::regex("Probability:(.*)"))){
-		ss.str(sm[0]);
+	if(boost::regex_match(line,sm,boost::regex("Probability:(.*)"))){
+		ss.str(sm[1]);
 		ss >> probability;
+		ss.clear();
 	}else{
 		throw InvalidSerializationException("HMMTransition: Probability cannot be deserialized.");
 	}
 
 	std::getline(is,line);
 
-	if(std::regex_match(line,sm,std::regex("Destination:(.*)"))){
-		ss.str(sm[0]);
+	if(boost::regex_match(line,sm,boost::regex("Destination:(.*)"))){
+		ss.str(sm[1]);
 		ss >> destination;
+		ss.clear();
 	}else{
 		throw InvalidSerializationException("HMMTransition: Destination cannot be deserialized.");
 	}
 
 	std::getline(is,line);
 
-	if(std::regex_match(line,sm,std::regex("Constant:(.*)"))){
-		ss.str(sm[0]);
+	if(boost::regex_match(line,sm,boost::regex("Constant:(.*)"))){
+		ss.str(sm[1]);
 		ss >> constant;
+		ss.clear();
 	}else{
 		throw InvalidSerializationException("HMMTransition: Constant cannot be deserialized.");
 	}

@@ -8,30 +8,36 @@
 #ifndef HMM_HPP_
 #define HMM_HPP_
 
-#include "HMMSingleNode.hpp"
-#include "HMMContainer.hpp"
-#include <tr1/memory>
-#include <vector>
-#include <tr1/unordered_set>
-#include <ostream>
-#include <istream>
+#include <boost/unordered_set.hpp>
+#include <boost/unordered_map.hpp>
+#include <boost/shared_ptr.hpp>
 
-typedef std::tr1::shared_ptr<HMMNode> ptrHMMNode;
+class HMMNode;
+class HMMCompiled;
+class HMMSingleNode;
+class HMMContainer;
+class HMMTransition;
+class HMMEmission;
+
+typedef boost::shared_ptr<HMMNode> ptrHMMNode;
 
 class HMM{
 private:
-	std::tr1::unordered_map<int, ptrHMMNode > _nodes;
+	boost::unordered_map<int, boost::shared_ptr<HMMNode> > _nodes;
 	int _nextID;
-	std::tr1::unordered_set<int> _startNodes;
-	std::tr1::unordered_set<int> _endNodes;
+	boost::unordered_set<int> _startNodes;
+	boost::unordered_set<int> _endNodes;
+
 public:
 	HMM();
 
 	ptrHMMNode getNode(int id);
 	ptrHMMNode getNode(const std::string& name);
 
-	const std::tr1::unordered_set<int>& getStartNodes() const {return _startNodes;}
-	const std::tr1::unordered_set<int>& getEndNodes() const {return _endNodes;}
+	const boost::unordered_map<int,boost::shared_ptr<HMMNode> >& getNodes() const { return _nodes; }
+
+	const boost::unordered_set<int>& getStartNodes() const {return _startNodes;}
+	const boost::unordered_set<int>& getEndNodes() const {return _endNodes;}
 
 	bool hasNode(int id);
 
@@ -49,10 +55,16 @@ public:
 	void addStartNode(int nodeID);
 	void addEndNode(int nodeID);
 
-	void insertModel(int containerID, const std::tr1::shared_ptr<HMM>& hmm);
+	void insertModel(int containerID, const boost::shared_ptr<HMM>& hmm);
 
 	void serialize(std::ostream& os) const;
-	static std::tr1::shared_ptr<HMM> deserialize(std::istream& is);
+	static void deserialize(std::istream& is,boost::shared_ptr<HMM> hmm);
+
+	int size() const;
+	int shallowSize() const;
+
+	void compile(boost::shared_ptr<HMMCompiled> compiled);
+	void update(boost::shared_ptr<HMMCompiled> compiled);
 
 };
 

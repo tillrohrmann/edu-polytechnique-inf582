@@ -6,8 +6,18 @@
  */
 
 #include "HMM.hpp"
-#include "nullPtr.hpp"
 #include <stdexcept>
+#include <sstream>
+
+#include <boost/regex.hpp>
+
+#include "HMMSingleNode.hpp"
+#include "HMMContainer.hpp"
+#include "nullPtr.hpp"
+#include "Exceptions.hpp"
+#include "HMMTransition.hpp"
+#include "HMMEmission.hpp"
+#include "HMMCompiled.hpp"
 
 HMM::HMM(): _nextID(0){
 }
@@ -37,7 +47,7 @@ void HMM::removeNode(int id){
 }
 
 ptrHMMNode HMM::getNode(const std::string& name){
-	std::tr1::unordered_map<int, ptrHMMNode>::const_iterator iterator = _nodes.begin();
+	boost::unordered_map<int, ptrHMMNode>::const_iterator iterator = _nodes.begin();
 
 	for(;iterator != _nodes.end();++iterator){
 		if(iterator->second->getName() == name){
@@ -116,7 +126,7 @@ void HMM::addEndNode(int nodeID){
 	}
 }
 
-void HMM::insertModel(int containerID,const std::tr1::shared_ptr<HMM>& hmm){
+void HMM::insertModel(int containerID,const boost::shared_ptr<HMM>& hmm){
 	ptrHMMNode node = getNode(containerID);
 
 	if(node){
@@ -127,11 +137,155 @@ void HMM::insertModel(int containerID,const std::tr1::shared_ptr<HMM>& hmm){
 }
 
 void HMM::serialize(std::ostream& os) const{
-
+	os << "HMM{" << std::endl;
+	os << "Nodes:" << shallowSize() << std::endl;
+	for(boost::unordered_map<int,ptrHMMNode>::const_iterator it = _nodes.begin();
+			it != _nodes.end(); ++it){
+		HMMNode::serialize(os,it->second);
+	}
+	os << "Next ID:" << _nextID << std::endl;
+	os << "Start Nodes:" << _startNodes.size() << std::endl;
+	for(boost::unordered_set<int>::const_iterator it = _startNodes.begin();
+			it != _startNodes.end(); ++it){
+		os << *it << std::endl;
+	}
+	os << "End Nodes:" << _endNodes.size() << std::endl;
+	for(boost::unordered_set<int>::const_iterator it = _endNodes.begin();
+			it != _endNodes.end(); ++it){
+		os << *it << std::endl;
+	}
+	os << "}" << std::endl;
 }
 
-std::tr1::shared_ptr<HMM> HMM::deserialize(std::istream& is){
-	return std::tr1::shared_ptr<HMM>(new HMM());
+void HMM::deserialize(std::istream& is,boost::shared_ptr<HMM> hmm){
+	std::string line;
+	boost::smatch sm;
+	std::istringstream ss;
+	int nextID;
+
+	std::getline(is,line);
+
+	if(!boost::regex_match(line,boost::regex("HMM\\{"))){
+		throw InvalidSerializationException("HMM: Invalid initial key word");
+	}
+
+	std::getline(is,line);
+
+	if(boost::regex_match(line,sm,boost::regex("Nodes:(.*)"))){
+		int numberNodes;
+		ss.str(sm[1]);
+		ss >> numberNodes;
+		ss.clear();
+
+		for(int i =0; i< numberNodes; i++){
+			ptrHMMNode node = HMMNode::deserialize(is);
+			hmm->_nodes.emplace(node->getID(),node);
+		}
+	}else{
+		throw InvalidSerializationException("HMM: Nodes cannot be deserialized.");
+	}
+
+	std::getline(is,line);
+
+	if(boost::regex_match(line,sm,boost::regex("Next ID:(.*)"))){
+		ss.str(sm[1]);
+		ss >> nextID;
+		ss.clear();
+	}else{
+		throw InvalidSerializationException("HMM: Next id cannot be deserialized.");
+	}
+
+	std::getline(is,line);
+
+	if(boost::regex_match(line,sm,boost::regex("Start Nodes:(.*)"))){
+		int numberNodes;
+		int startNode;
+		ss.str(sm[1]);
+		ss >> numberNodes;
+		ss.clear();
+
+		for(int i=0; i< numberNodes; i++){
+			std::getline(is,line);
+			ss.str(line);
+			ss >> startNode;
+			ss.clear();
+
+			hmm->addStartNode(startNode);
+		}
+	}else{
+		throw InvalidSerializationException("HMM: Start nodes cannot be deserialized.");
+	}
+
+	std::getline(is,line);
+
+	if(boost::regex_match(line,sm,boost::regex("End Nodes:(.*)"))){
+		int numberNodes;
+		int endNode;
+
+		ss.str(sm[1]);
+		ss >> numberNodes;
+		ss.clear();
+
+		for(int i =0; i< numberNodes;i++){
+			std::getline(is,line);
+			ss.str(line);
+			ss >> endNode;
+			ss.clear();
+
+			hmm->addEndNode(endNode);
+		}
+	}else{
+		throw InvalidSerializationException("HMM: End nodes cannot be deserialized.");
+	}
+
+	std::getline(is,line);
+
+	hmm->_nextID = nextID;
+}
+
+int HMM::size() const{
+	int result = 0;
+
+	for(boost::unordered_map<int,ptrHMMNode>::const_iterator it = _nodes.begin();
+			it != _nodes.end(); ++it){
+		result += it->second->size();
+	}
+
+	return result;
+}
+
+int HMM::shallowSize() const{
+	int result = 0;
+
+	for(boost::unordered_map<int,ptrHMMNode>::const_iterator it = _nodes.begin();
+			it != _nodes.end(); ++it){
+		result += it->second->shallowSize();
+	}
+
+	return result;
+}
+
+void HMM::compile(boost::shared_ptr<HMMCompiled> compiled) {
+	compiled->initialize(size());
+
+	// Build mapping
+	for(boost::unordered_map<int,boost::shared_ptr<HMMNode> >::const_iterator it = _nodes.begin();
+			it != _nodes.end(); ++it){
+		it->second->buildMapping(*compiled);
+	}
+
+	// Incorporate transitions and emissions
+	for(boost::unordered_map<int,boost::shared_ptr<HMMNode> >::const_iterator it = _nodes.begin();
+			it != _nodes.end(); ++it){
+		it->second->buildTransitions(*compiled,*this);
+	}
+}
+
+void HMM::update(boost::shared_ptr<HMMCompiled> compiled){
+	for(boost::unordered_map<int,boost::shared_ptr<HMMNode> >::const_iterator it = _nodes.begin();
+			it != _nodes.end(); ++it){
+		it->second->updateValues(*compiled,*this);
+	}
 }
 
 

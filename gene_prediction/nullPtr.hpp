@@ -8,12 +8,12 @@
 #ifndef NULLPTR_HPP_
 #define NULLPTR_HPP_
 
-#include <tr1/memory>
+#include <boost/shared_ptr.hpp>
 
 class NullPtr{
 public:
 	template <typename T>
-	operator std::tr1::shared_ptr<T> () { return std::tr1::shared_ptr<T>(); }
+	operator boost::shared_ptr<T> () { return boost::shared_ptr<T>(); }
 };
 
 extern NullPtr nullPtr;

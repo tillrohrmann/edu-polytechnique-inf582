@@ -6,11 +6,16 @@
  */
 
 #include "HMMContainer.hpp"
+#include <sstream>
+
+#include <boost/regex.hpp>
+
 #include "Exceptions.hpp"
 #include "nullPtr.hpp"
 #include "HMM.hpp"
-#include <sstream>
-#include <regex>
+#include "HMMTransition.hpp"
+#include "HMMEmission.hpp"
+#include "HMMCompiled.hpp"
 
 HMMContainer::HMMContainer(int id,std::string name) : HMMNode(id,name),_startNode(-1),_endNode(-1){
 }
@@ -20,14 +25,9 @@ HMMContainer::HMMContainer(int id, std::string name,const Transition& transition
 }
 
 HMMContainer::~HMMContainer(){
-}
-
-void HMMContainer::addTransition(const HMMTransition& transition){
-	throw OperationNotSupportedException("HMMContainer does not support the addTransition operation.");
-}
-
-void HMMContainer::removeTransition(int destination){
-	throw OperationNotSupportedException("HMMContainer does not support the removeTransition operation.");
+	if(_model){
+		extractModel();
+	}
 }
 
 void HMMContainer::addEmission(const HMMEmission& emission){
@@ -38,24 +38,33 @@ void HMMContainer::removeEmission(const std::string& token){
 	throw OperationNotSupportedException("HMMContainer does not support the removeEmission operation.");
 }
 
-void HMMContainer::insertModel(const std::tr1::shared_ptr<HMM>& hmm){
+void HMMContainer::insertModel(const boost::shared_ptr<HMM>& hmm){
 	replaceModel(hmm);
 }
 
-std::tr1::shared_ptr<HMM> HMMContainer::replaceModel(const std::tr1::shared_ptr<HMM>& hmm){
-	std::tr1::shared_ptr<HMM> oldModel = _model;
+boost::shared_ptr<HMM> HMMContainer::extractModel(){
+	boost::shared_ptr<HMM> oldModel = _model;
 
 	if(oldModel){
 		oldModel->removeNode(_startNode);
 		oldModel->removeNode(_endNode);
 
-		const std::tr1::unordered_set<int> & endNodes = oldModel->getEndNodes();
+		const boost::unordered_set<int> & endNodes = oldModel->getEndNodes();
 
-		for(std::tr1::unordered_set<int>::const_iterator it = endNodes.begin();
+		for(boost::unordered_set<int>::const_iterator it = endNodes.begin();
 				it != endNodes.end(); ++it){
 			oldModel->getNode(*it)->removeTransition(_endNode);
 		}
 	}
+
+	_model = nullPtr;
+	_startNode = -1;
+	_endNode = -1;
+	return oldModel;
+}
+
+boost::shared_ptr<HMM> HMMContainer::replaceModel(const boost::shared_ptr<HMM>& hmm){
+	boost::shared_ptr<HMM> oldModel = extractModel();
 
 	_model = hmm;
 
@@ -64,10 +73,12 @@ std::tr1::shared_ptr<HMM> HMMContainer::replaceModel(const std::tr1::shared_ptr<
 	ss << "Container ID:" << _id << " start node";
 	_startNode = _model->createNode(ss.str());
 
-	ss<< "Container ID:" << _id << " start node";
+	ss.str("");
+
+	ss<< "Container ID:" << _id << " end node";
 	_endNode = _model->createNode(ss.str());
 
-	const std::tr1::unordered_set<int> &startNodes = hmm->getStartNodes();
+	const boost::unordered_set<int> &startNodes = hmm->getStartNodes();
 	ptrHMMNode startNode = _model->getNode(_startNode);
 	ptrHMMNode endNode = _model->getNode(_endNode);
 
@@ -76,18 +87,18 @@ std::tr1::shared_ptr<HMM> HMMContainer::replaceModel(const std::tr1::shared_ptr<
 
 	auto numberStartNodes = startNodes.size();
 
-	for(std::tr1::unordered_set<int>::const_iterator it = startNodes.begin();
+	for(boost::unordered_set<int>::const_iterator it = startNodes.begin();
 			it != startNodes.end(); ++it){
 		startNode->addTransition(HMMTransition(1.0/numberStartNodes,*it,false));
 	}
 
-	const std::tr1::unordered_set<int> &endNodes = hmm->getEndNodes();
+	const boost::unordered_set<int> &endNodes = hmm->getEndNodes();
 
 	auto numberEndNodes = startNodes.size();
 
 	HMMTransition endTransition(1.0/numberEndNodes,_endNode,false);
 
-	for(std::tr1::unordered_set<int>::const_iterator it = endNodes.begin();
+	for(boost::unordered_set<int>::const_iterator it = endNodes.begin();
 			it != endNodes.end(); ++it){
 		_model->getNode(*it)->addTransition(endTransition);
 	}
@@ -98,20 +109,13 @@ std::tr1::shared_ptr<HMM> HMMContainer::replaceModel(const std::tr1::shared_ptr<
 void HMMContainer::serialize(std::ostream& os) const{
 	os << "HMMContainer{" << std::endl;
 
-	os << "ID:" << _id << std::endl;
-	os << "Name:" << _name << std::endl;
-	os << "Transitions:" << _transitions.size() << std::endl;
-
-	for(std::tr1::unordered_map<int,HMMTransition>::const_iterator it = _transitions.begin();
-			it != _transitions.end(); ++it){
-		it->second.serialize(os);
-	}
+	HMMNode::serialize(os);
 
 	if(_model){
 		os << "Model:" << std::endl;
 		_model->serialize(os);
 	}else{
-		os << "No model" << std::endl;
+		os << "No model:" << std::endl;
 	}
 	os << "StartNode:" << _startNode << std::endl;
 	os << "EndNode:" << _endNode << std::endl;
@@ -119,86 +123,134 @@ void HMMContainer::serialize(std::ostream& os) const{
 	os << "}" << std::endl;
 }
 
-std::tr1::shared_ptr<HMMContainer> HMMContainer::deserialize(std::istream& is){
+void HMMContainer::deserialize(std::istream& is,boost::shared_ptr<HMMContainer> hmmContainer){
 	int startNode;
 	int endNode;
-	std::tr1::shared_ptr<HMM> model;
+	boost::shared_ptr<HMM> model(new HMM());
 	int id;
 	std::string name;
 	std::string line;
-	std::smatch sm;
+	boost::smatch sm;
 	std::istringstream ss;
 
 	std::getline(is,line);
 
-	if(!std::regex_match(line,std::regex("HMMContainer{"))){
+	if(!boost::regex_match(line,boost::regex("HMMContainer\\{"))){
 		throw InvalidSerializationException("HMMContainer: Invalid initial key word.");
 	}
 
+	HMMNode::deserialize(is,boost::static_pointer_cast<HMMNode>(hmmContainer));
+
 	std::getline(is,line);
 
-	if(std::regex_match(line,sm,std::regex("ID:(.*)"))){
-		ss.str(sm[0]);
-		ss >> id;
-	}else{
-		throw InvalidSerializationException("HMMContainer: ID cannot be deserialized.");
+	if(boost::regex_match(line,boost::regex("Model:"))){
+		HMM::deserialize(is,model);
 	}
 
 	std::getline(is,line);
 
-	if(std::regex_match(line,sm,std::regex("Name:(.*)"))){
-		name = sm[0];
-	}else{
-		throw InvalidSerializationException("HMMContainer: Name cannot be deserialized.");
-	}
-
-	std::tr1::shared_ptr<HMMContainer> newContainer(new HMMContainer(id,name));
-
-	std::getline(is,line);
-
-	if(std::regex_match(line,sm,std::regex("Transitions:(.*)"))){
-		int numberTransitions;
-		ss.str(sm[0]);
-		ss >> numberTransitions;
-
-		for(int i =0; i< numberTransitions; i++){
-			newContainer->addTransition(HMMTransition::deserialize(is));
-		}
-	}else{
-		throw InvalidSerializationException("HMMContainer: Transitions cannot be deserialized.");
-	}
-
-	std::getline(is,line);
-
-	if(std::regex_match(line,std::regex("Model"))){
-		model = HMM::deserialize(is);
-	}
-
-	std::getline(is,line);
-
-	if(std::regex_match(line,sm,std::regex("StartNode:(.*)"))){
-		ss.str(sm[0]);
+	if(boost::regex_match(line,sm,boost::regex("StartNode:(.*)"))){
+		ss.str(sm[1]);
 		ss >> startNode;
+		ss.clear();
 	}else{
 		throw InvalidSerializationException("HMMContainer: Start node cannot be deserialized.");
 	}
 
 	std::getline(is,line);
 
-	if(std::regex_match(line,sm,std::regex("EndNode:(.*)"))){
-		ss.str(sm[0]);
+	if(boost::regex_match(line,sm,boost::regex("EndNode:(.*)"))){
+		ss.str(sm[1]);
 		ss >> endNode;
+		ss.clear();
 	}
 
 	std::getline(is,line);
 
-	newContainer->_model = model;
-	newContainer->_startNode = startNode;
-	newContainer->_endNode = endNode;
 
-	return newContainer;
+	hmmContainer->_model = model;
+	hmmContainer->_startNode = startNode;
+	hmmContainer->_endNode = endNode;
 }
 
+int HMMContainer::size() const{
+	if(_model){
+		return _model->size();
+	}else{
+		return 0;
+	}
+}
+
+void HMMContainer::buildMapping(HMMCompiled& compiled){
+	HMMNode::buildMapping(compiled);
+
+	if(_model){
+		for(boost::unordered_map<int,boost::shared_ptr<HMMNode> >::const_iterator it = _model->getNodes().begin();
+				it != _model->getNodes().end(); ++it){
+			if(_startNode != it->first){
+				it->second->buildMapping(compiled);
+			}
+		}
+	}
+}
+
+void HMMContainer::buildTransitions(HMMCompiled& compiled, HMM& hmm){
+	if(_model){
+		for(boost::unordered_map<int,boost::shared_ptr<HMMNode> >::const_iterator it = _model->getNodes().begin();
+				it != _model->getNodes().end(); ++it){
+			if(it->first == _startNode){
+				compiled.addSilentNode(shared_from_this());
+
+				for(boost::unordered_map<int,HMMTransition>::const_iterator tr = it->second->getTransition().begin();
+						tr != it->second->getTransition().end(); ++tr){
+					HMMTransition transition = tr->second;
+					compiled.addTransition(shared_from_this(),_model->getNode(transition._destination),transition._probability);
+
+					if(transition._constant){
+						compiled.addConstantTransition(shared_from_this(),_model->getNode(transition._destination));
+					}
+				}
+
+			} else if(it->first == _endNode){
+				compiled.addSilentNode(it->second);
+
+				for(boost::unordered_map<int,HMMTransition>::const_iterator tr = _transitions.begin();
+						tr != _transitions.end(); ++tr){
+					HMMTransition transition = tr->second;
+
+					compiled.addTransition(it->second,hmm.getNode(transition._destination),transition._probability);
+
+					if(transition._constant){
+						compiled.addConstantTransition(it->second,hmm.getNode(transition._destination));
+					}
+				}
+			}else{
+				it->second->buildTransitions(compiled,*_model);
+			}
+		}
+	}
+}
+
+void HMMContainer::updateValues(HMMCompiled& compiled, HMM& hmm){
+	if(_model){
+		for(boost::unordered_map<int,boost::shared_ptr<HMMNode> >::const_iterator it = _model->getNodes().begin();
+				it != _model->getNodes().end(); ++it){
+			if(it->first == _startNode){
+				for(boost::unordered_map<int,HMMTransition>::iterator tr = it->second->getTransition().begin();
+						tr != it->second->getTransition().end(); ++tr){
+					tr->second._probability = compiled.getTransition(shared_from_this(),_model->getNode(tr->first));
+				}
+			}else if(it->first == _endNode){
+				for(boost::unordered_map<int,HMMTransition>::iterator tr = _transitions.begin();
+						tr != _transitions.end(); ++tr){
+					tr->second._probability = compiled.getTransition(it->second,hmm.getNode(tr->first));
+				}
+			}else{
+				it->second->updateValues(compiled,*_model);
+			}
+		}
+	}
+}
 
 
 
