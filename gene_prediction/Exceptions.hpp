@@ -31,6 +31,16 @@ public:
 	const char* what() const noexcept;
 };
 
+class HMMException : public std::exception{
+private:
+	std::string _message;
+public:
+	HMMException(std::string message) noexcept;
+	HMMException(const HMMException& ex) noexcept;
+	HMMException& operator=(const HMMException& ex) noexcept;
+	const char* what() const noexcept;
+};
+
 
 
 

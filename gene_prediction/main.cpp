@@ -26,7 +26,7 @@ int main(int argc, char** argv){
 	hmm.addTransition(intergenic,HMMTransition(0.5,intergenic,false));
 	hmm.addTransition(intergenic,HMMTransition(0.5,exon,false));
 	hmm.addTransition(exon,HMMTransition(0.5,intergenic,false));
-	hmm.addTransition(exon,HMMTransition(0.5,intron,false));
+	hmm.addTransition(exon,HMMTransition(0.5,exon,false));
 
 	int a = hmmExon->createNode("A");
 	int b = hmmExon->createNode("B");

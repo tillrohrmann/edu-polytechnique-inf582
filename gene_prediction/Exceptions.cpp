@@ -46,4 +46,23 @@ const char* InvalidSerializationException::what() const noexcept{
 	return _message.c_str();
 }
 
+HMMException::HMMException(std::string message) noexcept
+: exception(), _message(message){
+}
+
+HMMException::HMMException(const HMMException & ex) noexcept
+: exception(ex), _message(ex._message){
+}
+
+HMMException& HMMException::operator =(const HMMException& ex) noexcept {
+	exception::operator=(ex);
+	_message = ex._message;
+
+	return (*this);
+}
+
+const char* HMMException::what() const noexcept{
+	return _message.c_str();
+}
+
 

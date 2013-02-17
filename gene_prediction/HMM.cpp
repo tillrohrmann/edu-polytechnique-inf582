@@ -279,6 +279,8 @@ void HMM::compile(boost::shared_ptr<HMMCompiled> compiled) {
 			it != _nodes.end(); ++it){
 		it->second->buildTransitions(*compiled,*this);
 	}
+
+	compiled->finishCompilation();
 }
 
 void HMM::update(boost::shared_ptr<HMMCompiled> compiled){
