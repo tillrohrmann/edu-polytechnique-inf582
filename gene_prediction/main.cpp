@@ -7,42 +7,94 @@
 
 #include "HMM.hpp"
 #include "HMMTransition.hpp"
+#include "HMMEmission.hpp"
 #include "HMMCompiled.hpp"
+#include "HMMNode.hpp"
+#include "CrossValidation.hpp"
 #include <fstream>
 #include <string>
 #include <boost/shared_ptr.hpp>
 
 int main(int argc, char** argv){
 	std::string filename = "test.hmm";
-	HMM hmm;
-	boost::shared_ptr<HMM> hmmExon(new HMM());
+	boost::shared_ptr<HMM> hmm(new HMM());
+	boost::shared_ptr<HMM> learned(new HMM());
 	boost::shared_ptr<HMMCompiled> compiled(new HMMCompiled());
+	boost::shared_ptr<HMMCompiled> cLearned(new HMMCompiled());
+	boost::shared_ptr<HMMCompiled> result;
 
-	int exon = hmm.createContainer("Exon");
-	int intron = hmm.createNode("Intron");
-	int intergenic = hmm.createNode("Intergenic");
+	int a = hmm->createNode("A");
+	int b = hmm->createNode("B");
+	int c = hmm->createNode("C");
 
-	hmm.addTransition(intron,HMMTransition(1,exon,false));
-	hmm.addTransition(intergenic,HMMTransition(0.5,intergenic,false));
-	hmm.addTransition(intergenic,HMMTransition(0.5,exon,false));
-	hmm.addTransition(exon,HMMTransition(0.5,intergenic,false));
-	hmm.addTransition(exon,HMMTransition(0.5,exon,false));
+	hmm->addTransition(a,HMMTransition(1.0,b,false));
+	hmm->addTransition(b,HMMTransition(0.75,c,false));
+	hmm->addTransition(b,HMMTransition(0.25,b,false));
+	hmm->addTransition(c,HMMTransition(1.0,c,false));
 
-	int a = hmmExon->createNode("A");
-	int b = hmmExon->createNode("B");
-	int c = hmmExon->createNode("C");
+	hmm->addStartNode(a,1.0);
 
-	hmmExon->addTransition(a,HMMTransition(1,b,false));
-	hmmExon->addTransition(b,HMMTransition(1,c,false));
-	hmmExon->addStartNode(a);
-	hmmExon->addEndNode(c);
+	hmm->addEmission(a,HMMEmission(0.5,"A",false));
+	hmm->addEmission(a,HMMEmission(0.5,"G",false));
+	hmm->addEmission(b,HMMEmission(0.25,"A",false));
+	hmm->addEmission(b,HMMEmission(0.25,"G",false));
+	hmm->addEmission(b,HMMEmission(0.5,"T",false));
+	hmm->addEmission(c,HMMEmission(0.25,"A",false));
+	hmm->addEmission(c,HMMEmission(0.25,"C",false));
+	hmm->addEmission(c,HMMEmission(0.25,"G",false));
+	hmm->addEmission(c,HMMEmission(0.25,"T",false));
 
-	hmm.insertModel(exon,hmmExon);
+	hmm->compile(compiled);
 
-	hmm.compile(compiled);
 	std::cout << compiled->toString() << std::endl;
 
-	hmm.update(compiled);
+	std::vector<int> states;
+	std::vector<std::string> output;
+	std::vector<std::vector<std::string> > trainingSet;
+	for(int i=0; i < 1000; i++){
+		output.clear();
+		compiled->simulate(20,output,states);
+		trainingSet.push_back(output);
+
+//		std::cout << i << ":";
+//		for(int j=0; j<output.size(); j++){
+//			std::cout << output[j];
+//		}
+//		std::cout << std::endl;
+	}
+
+	boost::unordered_set<std::string> emission_set;
+	emission_set.insert("A");
+	emission_set.insert("G");
+	emission_set.insert("C");
+	emission_set.insert("T");
+
+	learned->initializeRandom(5,emission_set);
+
+	std::vector<std::string> sequence;
+	sequence.push_back("A");
+	sequence.push_back("A");
+	sequence.push_back("T");
+	sequence.push_back("T");
+	sequence.push_back("A");
+	std::cout << compiled->forward(sequence) << std::endl;
+	std::cout << compiled->backward(sequence) << std::endl;
+
+	states.clear();
+
+	compiled->viterbi(sequence,states);
+
+	for(int i =0; i< states.size(); i++){
+		std::cout << compiled->getNode(states[i])->getName();
+	}
+
+	std::cout << std::endl;
+
+	learned->compile(cLearned);
+
+	result = CrossValidation::crossValidation(cLearned,trainingSet,0.001,10,100);
+
+	std::cout << result->toString() << std::endl;
 
 //	std::fstream file;
 //

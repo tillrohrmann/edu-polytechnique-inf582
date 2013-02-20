@@ -25,18 +25,20 @@ class HMM{
 private:
 	boost::unordered_map<int, boost::shared_ptr<HMMNode> > _nodes;
 	int _nextID;
-	boost::unordered_set<int> _startNodes;
+	boost::unordered_map<int,double> _startNodes;
 	boost::unordered_set<int> _endNodes;
 
 public:
 	HMM();
+
+	void clear();
 
 	ptrHMMNode getNode(int id);
 	ptrHMMNode getNode(const std::string& name);
 
 	const boost::unordered_map<int,boost::shared_ptr<HMMNode> >& getNodes() const { return _nodes; }
 
-	const boost::unordered_set<int>& getStartNodes() const {return _startNodes;}
+	const boost::unordered_map<int,double>& getStartNodes() const {return _startNodes;}
 	const boost::unordered_set<int>& getEndNodes() const {return _endNodes;}
 
 	bool hasNode(int id);
@@ -52,7 +54,7 @@ public:
 	void addTransitions(int src, const std::vector<HMMTransition>& transitions);
 	void addEmissions(int src, const std::vector<HMMEmission>& emissions);
 
-	void addStartNode(int nodeID);
+	void addStartNode(int nodeID,double probability);
 	void addEndNode(int nodeID);
 
 	void insertModel(int containerID, const boost::shared_ptr<HMM>& hmm);
@@ -65,6 +67,8 @@ public:
 
 	void compile(boost::shared_ptr<HMMCompiled> compiled);
 	void update(boost::shared_ptr<HMMCompiled> compiled);
+
+	void initializeRandom(int numberStates, boost::unordered_set<std::string>& emissions);
 
 };
 

@@ -110,9 +110,9 @@ void HMM::addEmissions(int src,const std::vector<HMMEmission>& emissions){
 	}
 }
 
-void HMM::addStartNode(int nodeID){
+void HMM::addStartNode(int nodeID, double probability){
 	if(hasNode(nodeID)){
-		_startNodes.insert(nodeID);
+		_startNodes.emplace(nodeID,probability);
 	}else{
 		throw std::invalid_argument("There is no node with ID:"+nodeID);
 	}
@@ -145,9 +145,9 @@ void HMM::serialize(std::ostream& os) const{
 	}
 	os << "Next ID:" << _nextID << std::endl;
 	os << "Start Nodes:" << _startNodes.size() << std::endl;
-	for(boost::unordered_set<int>::const_iterator it = _startNodes.begin();
+	for(boost::unordered_map<int,double>::const_iterator it = _startNodes.begin();
 			it != _startNodes.end(); ++it){
-		os << *it << std::endl;
+		os << it->first << ":" << it->second << std::endl;
 	}
 	os << "End Nodes:" << _endNodes.size() << std::endl;
 	for(boost::unordered_set<int>::const_iterator it = _endNodes.begin();
@@ -162,11 +162,12 @@ void HMM::deserialize(std::istream& is,boost::shared_ptr<HMM> hmm){
 	boost::smatch sm;
 	std::istringstream ss;
 	int nextID;
+	double probability;
 
 	std::getline(is,line);
 
 	if(!boost::regex_match(line,boost::regex("HMM\\{"))){
-		throw InvalidSerializationException("HMM: Invalid initial key word");
+		throw std::invalid_argument("HMM: Invalid initial key word");
 	}
 
 	std::getline(is,line);
@@ -182,7 +183,7 @@ void HMM::deserialize(std::istream& is,boost::shared_ptr<HMM> hmm){
 			hmm->_nodes.emplace(node->getID(),node);
 		}
 	}else{
-		throw InvalidSerializationException("HMM: Nodes cannot be deserialized.");
+		throw std::invalid_argument("HMM: Nodes cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -192,7 +193,7 @@ void HMM::deserialize(std::istream& is,boost::shared_ptr<HMM> hmm){
 		ss >> nextID;
 		ss.clear();
 	}else{
-		throw InvalidSerializationException("HMM: Next id cannot be deserialized.");
+		throw std::invalid_argument("HMM: Next id cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -206,14 +207,20 @@ void HMM::deserialize(std::istream& is,boost::shared_ptr<HMM> hmm){
 
 		for(int i=0; i< numberNodes; i++){
 			std::getline(is,line);
-			ss.str(line);
+
+			boost::regex_match(line,sm,boost::regex("([^:]*):([^:]*)"));
+
+			ss.str(sm[1]);
 			ss >> startNode;
 			ss.clear();
+			ss.str(sm[2]);
+			ss >> probability;
+			ss.clear();
 
-			hmm->addStartNode(startNode);
+			hmm->addStartNode(startNode,probability);
 		}
 	}else{
-		throw InvalidSerializationException("HMM: Start nodes cannot be deserialized.");
+		throw std::invalid_argument("HMM: Start nodes cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -228,6 +235,7 @@ void HMM::deserialize(std::istream& is,boost::shared_ptr<HMM> hmm){
 
 		for(int i =0; i< numberNodes;i++){
 			std::getline(is,line);
+
 			ss.str(line);
 			ss >> endNode;
 			ss.clear();
@@ -235,7 +243,7 @@ void HMM::deserialize(std::istream& is,boost::shared_ptr<HMM> hmm){
 			hmm->addEndNode(endNode);
 		}
 	}else{
-		throw InvalidSerializationException("HMM: End nodes cannot be deserialized.");
+		throw std::invalid_argument("HMM: End nodes cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -280,6 +288,12 @@ void HMM::compile(boost::shared_ptr<HMMCompiled> compiled) {
 		it->second->buildTransitions(*compiled,*this);
 	}
 
+	// add initial distribution
+	for(boost::unordered_map<int,double>::const_iterator it = _startNodes.begin();
+			it != _startNodes.end(); ++it){
+		compiled->addInitialDistribution(_nodes.at(it->first),it->second);
+	}
+
 	compiled->finishCompilation();
 }
 
@@ -288,6 +302,38 @@ void HMM::update(boost::shared_ptr<HMMCompiled> compiled){
 			it != _nodes.end(); ++it){
 		it->second->updateValues(*compiled,*this);
 	}
+}
+
+void HMM::clear(){
+	_nodes.clear();
+	_startNodes.clear();
+	_endNodes.clear();
+	_nextID = 0;
+}
+
+void HMM::initializeRandom(int numberStates, boost::unordered_set<std::string>& emissions){
+	std::stringstream ss;
+
+	clear();
+
+	for(int i=0; i< numberStates; i++){
+		ss << "Node" << i;
+		this->createNode(ss.str());
+		ss.clear();
+	}
+
+	for(int i=0; i<numberStates;i++){
+		for(int j =0; j<numberStates;j++){
+			addTransition(i,HMMTransition(-1,j,false));
+		}
+
+		for(boost::unordered_set<std::string>::const_iterator it = emissions.begin();
+				it != emissions.end(); ++it){
+			addEmission(i,HMMEmission(-1,*it,false));
+		}
+	}
+
+	addStartNode(0,1);
 }
 
 

@@ -18,6 +18,7 @@
 #include "HMMTransition.hpp"
 #include "HMMCompiled.hpp"
 #include "HMM.hpp"
+#include "nullPtr.hpp"
 
 HMMNode::HMMNode(int id,const std::string& name): _id(id),_name(name),_isSilent(false){
 }
@@ -49,11 +50,12 @@ void HMMNode::removeEmission(const std::string& token){
 }
 
 void HMMNode::insertModel(const boost::shared_ptr<HMM>& hmm){
-	throw OperationNotSupportedException("The operation insertModel is not supported for that type of HMMNode.");
+	//throw OperationNotSupportedException("The operation insertModel is not supported for that type of HMMNode.");
 }
 
 boost::shared_ptr<HMM> HMMNode::replaceModel(const boost::shared_ptr<HMM>& hmm){
-	throw OperationNotSupportedException("The operation replaceModel is not supported for that type of HMMNode.");
+	//throw OperationNotSupportedException("The operation replaceModel is not supported for that type of HMMNode.");
+	return nullPtr;
 }
 
 void HMMNode::serialize(std::ostream& os) const{
@@ -88,7 +90,7 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 	std::getline(is,line);
 
 	if(!boost::regex_match(line,boost::regex("Node\\{"))){
-		throw InvalidSerializationException("HMMNode: Initial keyword misses.");
+		throw std::invalid_argument("HMMNode: Initial keyword misses.");
 	}
 
 	std::getline(is,line);
@@ -98,7 +100,7 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 		ss >> id;
 		ss.clear();
 	}else{
-		throw InvalidSerializationException("HMMNode: ID cannot be deserialized.");
+		throw std::invalid_argument("HMMNode: ID cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -106,7 +108,7 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 	if(boost::regex_match(line,sm,boost::regex("Name:(.*)"))){
 		name = sm[1];
 	}else{
-		throw InvalidSerializationException("HMMNode: Name cannot be deserialized.");
+		throw std::invalid_argument("HMMNode: Name cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -116,7 +118,7 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 		ss >> isSilent;
 		ss.clear();
 	}else{
-		throw InvalidSerializationException("HMMNode: IsSilent cannot be deserialized.");
+		throw std::invalid_argument("HMMNode: IsSilent cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -131,7 +133,7 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 			hmmNode->addTransition(HMMTransition::deserialize(is));
 		}
 	}else{
-		throw InvalidSerializationException("HMMNode: Transitions cannot be deserialized.");
+		throw std::invalid_argument("HMMNode: Transitions cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -146,7 +148,7 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 			hmmNode->addEmission(HMMEmission::deserialize(is));
 		}
 	}else{
-		throw InvalidSerializationException("HMMNode: Emissions cannot be deserialized.");
+		throw std::invalid_argument("HMMNode: Emissions cannot be deserialized.");
 	}
 
 	std::getline(is,line);

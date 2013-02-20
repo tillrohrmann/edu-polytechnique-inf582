@@ -39,14 +39,14 @@ HMMEmission HMMEmission::deserialize(std::istream& is){
 		ss >> probability;
 		ss.clear();
 	}else{
-		throw InvalidSerializationException("HMMEmission: Probability cannot be deserialized.");
+		throw std::invalid_argument("HMMEmission: Probability cannot be deserialized.");
 	}
 
 	std::getline(is,line);
 	if(boost::regex_match(line,sm,boost::regex("Token:(.*)"))){
 		emissionToken = sm[1];
 	}else{
-		throw InvalidSerializationException("HMMEmission: Emission token cannot be deserialized.");
+		throw std::invalid_argument("HMMEmission: Emission token cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -55,7 +55,7 @@ HMMEmission HMMEmission::deserialize(std::istream& is){
 		ss >> constant;
 		ss.clear();
 	}else{
-		throw InvalidSerializationException("HMMEmission: Constant cannot be deserialized.");
+		throw std::invalid_argument("HMMEmission: Constant cannot be deserialized.");
 	}
 
 	std::getline(is,line);

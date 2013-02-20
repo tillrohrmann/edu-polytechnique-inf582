@@ -39,7 +39,7 @@ HMMTransition HMMTransition::deserialize(std::istream& is){
 		ss >> probability;
 		ss.clear();
 	}else{
-		throw InvalidSerializationException("HMMTransition: Probability cannot be deserialized.");
+		throw std::invalid_argument("HMMTransition: Probability cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -49,7 +49,7 @@ HMMTransition HMMTransition::deserialize(std::istream& is){
 		ss >> destination;
 		ss.clear();
 	}else{
-		throw InvalidSerializationException("HMMTransition: Destination cannot be deserialized.");
+		throw std::invalid_argument("HMMTransition: Destination cannot be deserialized.");
 	}
 
 	std::getline(is,line);
@@ -59,7 +59,7 @@ HMMTransition HMMTransition::deserialize(std::istream& is){
 		ss >> constant;
 		ss.clear();
 	}else{
-		throw InvalidSerializationException("HMMTransition: Constant cannot be deserialized.");
+		throw std::invalid_argument("HMMTransition: Constant cannot be deserialized.");
 	}
 
 	std::getline(is,line);

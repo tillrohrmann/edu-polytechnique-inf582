@@ -11,6 +11,7 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include <limits>
 
 #include <boost/heap/fibonacci_heap.hpp>
 
@@ -40,6 +41,29 @@ void HMMCompiled::clear(){
 	_node2Int.clear();
 
 	_counter = 0;
+}
+
+bool HMMCompiled::isRandom() const{
+	for(int i =0; i<_numberNodes*_numberNodes;i++){
+		if(_transitions[i] < 0){
+			return true;
+		}
+	}
+
+	for(int i =0; i<_numberNodes;i++){
+		if(_initialDistribution[i] <0){
+			return true;
+		}
+
+		for(boost::unordered_map<std::string,double>::const_iterator it = _emissions[i].begin();
+				it != _emissions[i].end(); ++it){
+			if(it->second <0){
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void HMMCompiled::initialize(int numberNodes){
@@ -81,6 +105,12 @@ void HMMCompiled::addMapping(boost::shared_ptr<HMMNode> node){
 		_node2Int[node] = _counter;
 		_int2Node[_counter++] = node;
 	}
+}
+
+void HMMCompiled::addInitialDistribution(boost::shared_ptr<HMMNode> node, double probability){
+	int index = getIndex(node);
+
+	_initialDistribution[index] = probability;
 }
 
 void HMMCompiled::addSilentNode(boost::shared_ptr<HMMNode> node){
@@ -171,18 +201,18 @@ std::string HMMCompiled::toString() const{
 	ss << "Transitions:" << std::endl;
 
 
-	ss << std::setw(5) << " ";
+	ss << std::setw(7) << "  ";
 	for(int i =0; i< _numberNodes;i++){
-		ss << std::setw(5) <<  i;
+		ss << std::setw(7) <<  i;
 	}
 
 	ss << std::endl;
 
 	for(int i=0; i< _numberNodes; i++){
-		ss << std::setw(5) <<  i;
+		ss << std::setw(7) <<  i << " ";
 
 		for(int j =0; j< _numberNodes; j++){
-			ss << std::setw(5) << std::setprecision(4) << getTransition(i,j);
+			ss << std::setw(7) << std::setprecision(4) << getTransition(i,j);
 		}
 		ss << std::endl;
 	}
@@ -235,7 +265,7 @@ void HMMCompiled::finishCompilation(){
 				jt != _silentStates.end(); ++jt){
 			if(getTransition(*it,*jt) != 0){
 				if(*it == *jt){
-					throw HMMException("HMM contains silent state with a self transition.");
+					throw std::invalid_argument("HMM contains silent state with a self transition.");
 				}
 				children.push_back(*jt);
 
@@ -257,7 +287,7 @@ void HMMCompiled::finishCompilation(){
 		heap.pop();
 
 		if(pair._first != 0){
-			throw HMMException("HMM contains silent states cycle.");
+			throw std::invalid_argument("HMM contains silent states cycle.");
 		}
 
 		_silentStateOrder.push_back(pair._second);
@@ -388,18 +418,19 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence){
 void HMMCompiled::viterbi(const std::vector<std::string>& sequence, std::vector<int>& stateSequence){
 	double* prev = new double[_numberNodes];
 	double* cur = new double[_numberNodes];
-	int* backtrack = new int[_numberNodes*sequence.size()];
+	int* backtrack = new int[_numberNodes*(sequence.size()-1)];
 	double *temp;
 	double maxProb;
 	int maxPred;
 	int counter =0;
 
+	std::vector<std::string>::const_iterator it = sequence.begin();
+
 	for(int i=0; i< _numberNodes; i++){
-		cur[i] = _initialDistribution[i];
+		cur[i] = _initialDistribution[i]*getEmission(i,*it);
 	}
 
-	for(std::vector<std::string>::const_iterator it = sequence.begin();
-			it != sequence.end(); ++it,counter++){
+	for(++it;it != sequence.end(); ++it,counter++){
 		temp = prev;
 		prev = cur;
 		cur = temp;
@@ -462,168 +493,189 @@ void HMMCompiled::viterbi(const std::vector<std::string>& sequence, std::vector<
 	delete [] backtrack;
 }
 
-void HMMCompiled::baumWelch(const std::vector<std::vector<std::string> >& trainingset){
+void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& trainingset, double threshold){
 	double* cTransitions = new double[_numberNodes*_numberNodes];
 	boost::unordered_map<std::string,double>* cEmissions = new boost::unordered_map<std::string,double>[_numberNodes];
 	double* cInitial = new double[_numberNodes];
+	double maxDiff;
+	double prob;
 
-	for(int i = 0; i<_numberNodes*_numberNodes; i++){
-		cTransitions[i] = 0;
-	}
-
-	for(int i =0; i< _numberNodes;i++){
-		cInitial[i] = 0;
-	}
-
-	for(std::vector<std::vector<std::string> >::const_iterator it = trainingset.begin(); it != trainingset.end(); ++it){
-		double * forward = new double[_numberNodes*(it->size())];
-		double * backward = new double[_numberNodes*(it->size())];
-		double probWord = 0;
-
-		for(int i=0; i<_numberNodes*(it->size()); i++){
-			forward[i] = 0;
-			backward[i] = 0;
+	do{
+		maxDiff = 0;
+		for(int i = 0; i<_numberNodes*_numberNodes; i++){
+			cTransitions[i] = 0;
 		}
 
-		_supersetEmissions.insert(it->at(0));
-
-		//calculate forward function
-		for(int i=0; i< _numberNodes;i++){
-			forward[i] = _initialDistribution[i]*getEmission(i,it->at(0));
+		for(int i =0; i< _numberNodes;i++){
+			cInitial[i] = 0;
 		}
 
-		for(int c =1; c < it->size(); c++){
-			_supersetEmissions.insert(it->at(c));
+		for(std::list<std::vector<std::string> >::const_iterator it = trainingset.begin(); it != trainingset.end(); ++it){
+			double * forward = new double[_numberNodes*(it->size())];
+			double * backward = new double[_numberNodes*(it->size())];
+			double probWord = 0;
 
-			for(int i=0; i< _numberNodes; i++){
-				forward[_numberNodes*c+i] = 0;
-				if(!isSilent(i)){
-					for(int j =0; j< _numberNodes;j++){
-						forward[_numberNodes*c+i] += forward[_numberNodes*(c-1)+j]*getEmission(i,it->at(c))*getTransition(j,i);
+			for(int i=0; i<_numberNodes*(it->size()); i++){
+				forward[i] = 0;
+				backward[i] = 0;
+			}
+
+			_supersetEmissions.insert(it->at(0));
+
+			//calculate forward function
+			for(int i=0; i< _numberNodes;i++){
+				forward[i] = _initialDistribution[i]*getEmission(i,it->at(0));
+			}
+
+
+
+			for(int c =1; c < it->size(); c++){
+				_supersetEmissions.insert(it->at(c));
+
+				for(int i=0; i< _numberNodes; i++){
+					forward[_numberNodes*c+i] = 0;
+					if(!isSilent(i)){
+						for(int j =0; j< _numberNodes;j++){
+							forward[_numberNodes*c+i] += forward[_numberNodes*(c-1)+j]*getEmission(i,it->at(c))*getTransition(j,i);
+						}
 					}
 				}
-			}
 
-			for(int i =0; i< _silentStateOrder.size(); i++){
-				int node = _silentStateOrder[i];
+				for(int i =0; i< _silentStateOrder.size(); i++){
+					int node = _silentStateOrder[i];
 
-				for(int j =0; j< _numberNodes; j++){
-					forward[_numberNodes*c+node] += forward[_numberNodes*c+j]*getTransition(j,node);
-				}
-			}
-		}
-
-		for(int i = 0; i < _numberNodes; i++){
-			probWord += forward[_numberNodes*(it->size()-1)+i];
-		}
-
-		//calculate backward function
-		for(int i=0; i<_numberNodes;i++){
-			backward[i+_numberNodes*(it->size()-1)] = 1;
-		}
-
-		for(int c = it->size()-2; c>=0; c--){
-			for(int i =0; i< _numberNodes; i++){
-				backward[i+_numberNodes*c] = 0;
-				if(!isSilent(i)){
 					for(int j =0; j< _numberNodes; j++){
-						backward[i+_numberNodes*c] += backward[j+_numberNodes*(c+1)]*getTransition(i,j)*getEmission(j,it->at(c+1));
+						forward[_numberNodes*c+node] += forward[_numberNodes*c+j]*getTransition(j,node);
 					}
 				}
 			}
 
-			for(int i = _silentStateOrder.size()-1; i>=0; i--){
-				int node = _silentStateOrder[i];
-				for(int j =0; j< _numberNodes; j++){
-					backward[node+_numberNodes*c] += backward[j+_numberNodes*c]*getTransition(node,j);
+			for(int i = 0; i < _numberNodes; i++){
+				probWord += forward[_numberNodes*(it->size()-1)+i];
+			}
+
+			//calculate backward function
+			for(int i=0; i<_numberNodes;i++){
+				backward[i+_numberNodes*(it->size()-1)] = 1;
+			}
+
+			for(int c = it->size()-2; c>=0; c--){
+				for(int i =0; i< _numberNodes; i++){
+					backward[i+_numberNodes*c] = 0;
+					if(!isSilent(i)){
+						for(int j =0; j< _numberNodes; j++){
+							backward[i+_numberNodes*c] += backward[j+_numberNodes*(c+1)]*getTransition(i,j)*getEmission(j,it->at(c+1));
+						}
+					}
+				}
+
+				for(int i = _silentStateOrder.size()-1; i>=0; i--){
+					int node = _silentStateOrder[i];
+					for(int j =0; j< _numberNodes; j++){
+						backward[node+_numberNodes*c] += backward[j+_numberNodes*c]*getTransition(node,j);
+					}
 				}
 			}
-		}
 
-		// calculate contributions
-		// transitions
-		for(int i =0; i<_numberNodes;i++){
-			for(int j = 0; j < _numberNodes; j++){
-				double temp =0;
-				if(isSilent(j)){
+			// calculate contributions
+			// transitions
+			for(int i =0; i<_numberNodes;i++){
+				for(int j = 0; j < _numberNodes; j++){
+					double temp =0;
+					if(isSilent(j)){
+						for(int t = 0; t < it->size(); t++){
+							temp += forward[t*_numberNodes +i]*backward[t*_numberNodes + j];
+						}
+					}else{
+						for(int t = 0; t < it->size()-1; t++){
+							temp += forward[t*_numberNodes + i]*backward[(t+1)*_numberNodes + j]*getEmission(j,it->at(t+1));
+						}
+					}
+
+					cTransitions[i*_numberNodes + j] += getTransition(i,j)*temp/probWord;
+				}
+			}
+
+			// emissions
+			for(int i =0; i< _numberNodes; i++){
+				if(!isSilent(i)){
 					for(int t = 0; t < it->size(); t++){
-						temp += forward[t*_numberNodes +i]*backward[t*_numberNodes + j];
-					}
-				}else{
-					for(int t = 0; t < it->size()-1; t++){
-						temp += forward[t*_numberNodes + i]*backward[(t+1)*_numberNodes + j]*getEmission(j,it->at(t+1));
+						cEmissions[i][it->at(t)] += forward[t*_numberNodes+i]*backward[t*_numberNodes+i]/probWord;
 					}
 				}
-
-				cTransitions[i*_numberNodes + j] += getTransition(i,j)*temp/probWord;
 			}
+
+			// initial distribution
+			for(int i =0; i<_numberNodes;i++){
+				cInitial[i] += forward[i]*backward[i]/probWord;
+			}
+
+			delete [] forward;
+			delete [] backward;
 		}
 
-		// emissions
+		// smoothing by pseudo counts
 		for(int i =0; i< _numberNodes; i++){
-			if(!isSilent(i)){
-				for(int t = 0; t < it->size(); t++){
-					cEmissions[i][it->at(t)] += forward[t*_numberNodes+i]*backward[t*_numberNodes+i]/probWord;
+			for(boost::unordered_set<std::string>::const_iterator it = _supersetEmissions.begin(); it != _supersetEmissions.end();++it){
+				cEmissions[i][*it] += 1;
+			}
+		}
+
+		// new emission probabilities
+		for(int i =0; i<_numberNodes; i++){
+			double sum =0;
+			for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
+				sum += it->second;
+			}
+
+			for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
+				prob = it->second/sum;
+
+				if(maxDiff < std::abs(_emissions[i][it->first]-prob)){
+					maxDiff = std::abs(_emissions[i][it->first]-prob);
+				}
+				_emissions[i][it->first] = prob;
+			}
+		}
+
+		// new transition probabilities
+		for(int i=0; i<_numberNodes;i++){
+			double sum =0;
+			double constantRest = 0;
+
+			for(int j =0; j< _numberNodes;j++){
+				if(_constantTransitions[i*_numberNodes + j]){
+					constantRest += _transitions[i*_numberNodes +j];
+				}else{
+					sum += cTransitions[i*_numberNodes + j];
+				}
+			}
+
+			for(int j =0; j<_numberNodes; j++){
+				if(!_constantTransitions[i*_numberNodes+j]){
+					prob = (1-constantRest)*cTransitions[i*_numberNodes+j]/sum;
+					if(maxDiff < std::abs(_transitions[i*_numberNodes+j]-prob)){
+						maxDiff = std::abs(_transitions[i*_numberNodes+j]-prob);
+					}
+					_transitions[i*_numberNodes + j] = prob;
 				}
 			}
 		}
 
-		// initial distribution
-		for(int i =0; i<_numberNodes;i++){
-			cInitial[i] += forward[i]*backward[i]/probWord;
+		// new initial distribution
+		double sum = 0;
+		for(int i =0; i < _numberNodes; i++){
+			sum += cInitial[i];
 		}
 
-		delete [] forward;
-		delete [] backward;
-	}
-
-	// smoothing by pseudo counts
-	for(int i =0; i< _numberNodes; i++){
-		for(boost::unordered_set<std::string>::const_iterator it = _supersetEmissions.begin(); it != _supersetEmissions.end();++it){
-			cEmissions[i][*it] += 1;
-		}
-	}
-
-	// new emission probabilities
-	for(int i =0; i<_numberNodes; i++){
-		double sum =0;
-		for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
-			sum += it->second;
-		}
-
-		for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
-			_emissions[i][it->first] = it->second/sum;
-		}
-	}
-
-	// new transition probabilities
-	for(int i=0; i<_numberNodes;i++){
-		double sum =0;
-		double constantRest = 0;
-
-		for(int j =0; j< _numberNodes;j++){
-			if(_constantTransitions[i*_numberNodes + j]){
-				constantRest += _transitions[i*_numberNodes +j];
-			}else{
-				sum += cTransitions[i*_numberNodes + j];
+		for(int i=0; i< _numberNodes; i++){
+			prob = cInitial[i]/sum;
+			if(maxDiff < std::abs(_initialDistribution[i]-prob)){
+				maxDiff = std::abs(_initialDistribution[i]-prob);
 			}
+			_initialDistribution[i] = prob;
 		}
-
-		for(int j =0; j<_numberNodes; j++){
-			if(!_constantTransitions[i*_numberNodes+j])
-				_transitions[i*_numberNodes + j] = (1-constantRest)*cTransitions[i*_numberNodes+j]/sum;
-		}
-	}
-
-	// new initial distribution
-	double sum = 0;
-	for(int i =0; i < _numberNodes; i++){
-		sum += cInitial[i];
-	}
-
-	for(int i=0; i< _numberNodes; i++){
-		_initialDistribution[i] = cInitial[i]/sum;
-	}
+	}while(maxDiff > threshold);
 
 	delete [] cTransitions;
 	delete [] cEmissions;
@@ -748,6 +800,36 @@ std::string HMMCompiled::getEmission(boost::unordered_map<std::string,double>& e
 	}
 
 	return it->first;
+}
+
+void HMMCompiled::copy(boost::shared_ptr<HMMCompiled> dst){
+	dst->clear();
+	dst->_numberNodes = _numberNodes;
+
+	dst->_transitions = new double[_numberNodes*_numberNodes];
+	std::memcpy(dst->_transitions,_transitions,sizeof(double)*_numberNodes*_numberNodes);
+
+	dst->_emissions = new boost::unordered_map<std::string,double>[_numberNodes];
+	for(int i =0; i< _numberNodes; i++){
+		dst->_emissions[i] = _emissions[i];
+	}
+
+	dst->_supersetEmissions = _supersetEmissions;
+	dst->_silentStateOrder = _silentStateOrder;
+	dst->_silentStates = _silentStates;
+
+	dst->_initialDistribution = new double[_numberNodes];
+	std::memcpy(dst->_initialDistribution,_initialDistribution,sizeof(double)*_numberNodes);
+
+	dst->_constantTransitions = new bool[_numberNodes*_numberNodes];
+	std::memcpy(dst->_constantTransitions,_constantTransitions,sizeof(bool)*_numberNodes*_numberNodes);
+
+	dst->_int2Node = _int2Node;
+	dst->_node2Int = _node2Int;
+
+	dst->_counter = _counter;
+
+	dst->_random.base().seed((unsigned int)(_random()*std::numeric_limits<unsigned int>::max())+time(NULL));
 }
 
 
