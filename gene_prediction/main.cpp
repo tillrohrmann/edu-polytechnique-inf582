@@ -51,7 +51,7 @@ int main(int argc, char** argv){
 	std::vector<int> states;
 	std::vector<std::string> output;
 	std::vector<std::vector<std::string> > trainingSet;
-	for(int i=0; i < 1000; i++){
+	for(int i=0; i < 400; i++){
 		output.clear();
 		compiled->simulate(20,output,states);
 		trainingSet.push_back(output);

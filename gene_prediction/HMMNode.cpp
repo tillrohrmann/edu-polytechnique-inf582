@@ -208,7 +208,7 @@ void HMMNode::buildTransitions(HMMCompiled& compiled, HMM& hmm){
 	for(Emission::const_iterator it = _emissions.begin(); it != _emissions.end(); ++it){
 		HMMEmission emission = it->second;
 
-		compiled.addEmission(shared_from_this(),emission._emissionToken,emission._probabiltiy);
+		compiled.addEmission(shared_from_this(),emission._emissionToken,emission._probabiltiy,emission._constant);
 	}
 }
 

@@ -19,10 +19,16 @@
 class HMMNode;
 
 class HMMCompiled{
+public:
+	struct EmissionInfo{
+		EmissionInfo(double prob=0, bool constant=false): _prob(prob),_constant(constant){}
+		double _prob;
+		bool _constant;
+	};
 private:
 	int _numberNodes;
 	double* _transitions;
-	boost::unordered_map<std::string,double>* _emissions;
+	boost::unordered_map<std::string,EmissionInfo>* _emissions;
 	boost::unordered_set<std::string> _supersetEmissions;
 	boost::unordered_set<int> _silentStates;
 	std::vector<int> _silentStateOrder;
@@ -63,7 +69,7 @@ public:
 	void addSilentNode(boost::shared_ptr<HMMNode> node);
 	void addConstantTransition(boost::shared_ptr<HMMNode> src, boost::shared_ptr<HMMNode> dest);
 	void addTransition(boost::shared_ptr<HMMNode> src, boost::shared_ptr<HMMNode> dest, double probability);
-	void addEmission(boost::shared_ptr<HMMNode> src, const std::string& token, double probability);
+	void addEmission(boost::shared_ptr<HMMNode> src, const std::string& token, double probability,bool constant = false);
 	void addInitialDistribution(boost::shared_ptr<HMMNode> node, double probability);
 
 	int getIndex(boost::shared_ptr<HMMNode> node) const;
@@ -79,7 +85,7 @@ public:
 
 	void simulate(int n, std::vector<std::string>& sequence, std::vector<int>& states);
 	int getState(double* distribution);
-	std::string getEmission(boost::unordered_map<std::string,double>& emissions);
+	std::string getEmission(boost::unordered_map<std::string,EmissionInfo>& emissions);
 
 	std::string toString() const;
 };
