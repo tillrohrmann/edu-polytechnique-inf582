@@ -3,7 +3,7 @@ SRC:=$(wildcard *.cpp)
 OBJ:=$(SRC:.cpp=.o)
 
 CFLAGS:=-ggdb -O3
-CXXFLAGS:=$(CFLAGS) -std=c++11
+CXXFLAGS:=$(CFLAGS)
 CC:=gcc
 CXX:=g++
 LDFLAGS:=

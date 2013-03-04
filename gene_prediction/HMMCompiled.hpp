@@ -52,10 +52,15 @@ public:
 
 	void setTransition(int x, int y, double value) { _transitions[x*_numberNodes + y] = value; }
 	double getTransition(int x, int y)const { return _transitions[x*_numberNodes + y]; }
+	double getLogTransition(int x, int y)const { return std::log(_transitions[x*_numberNodes + y]); }
 	double getTransition(boost::shared_ptr<HMMNode> src, boost::shared_ptr<HMMNode> dest);
+
+	double getInitialDistribution(int i) const { return _initialDistribution[i];}
+	double getLogInitialDistribution(int i)const { return std::log(_initialDistribution[i]);}
 
 	double getEmission(boost::shared_ptr<HMMNode> src,const std::string & token)const;
 	double getEmission(int id, const std::string& token) const;
+	double getLogEmission(int id, const std::string& token) const;
 
 	void clear();
 	void initialize(int numberNodes);

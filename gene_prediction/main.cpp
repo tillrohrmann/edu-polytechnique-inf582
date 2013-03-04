@@ -51,7 +51,7 @@ int main(int argc, char** argv){
 	std::vector<int> states;
 	std::vector<std::string> output;
 	std::vector<std::vector<std::string> > trainingSet;
-	for(int i=0; i < 400; i++){
+	for(int i=0; i < 500; i++){
 		output.clear();
 		compiled->simulate(20,output,states);
 		trainingSet.push_back(output);
@@ -69,7 +69,7 @@ int main(int argc, char** argv){
 	emission_set.insert("C");
 	emission_set.insert("T");
 
-	learned->initializeRandom(5,emission_set);
+	learned->initializeRandom(3,emission_set);
 
 	std::vector<std::string> sequence;
 	sequence.push_back("A");
@@ -77,6 +77,16 @@ int main(int argc, char** argv){
 	sequence.push_back("T");
 	sequence.push_back("T");
 	sequence.push_back("A");
+	sequence.push_back("C");
+	sequence.push_back("G");
+	sequence.push_back("T");
+	sequence.push_back("A");
+	sequence.push_back("C");
+	sequence.push_back("G");
+	sequence.push_back("T");
+	sequence.push_back("A");
+	sequence.push_back("C");
+	sequence.push_back("G");
 	std::cout << compiled->forward(sequence) << std::endl;
 	std::cout << compiled->backward(sequence) << std::endl;
 
@@ -92,15 +102,19 @@ int main(int argc, char** argv){
 
 	learned->compile(cLearned);
 
-	result = CrossValidation::crossValidation(cLearned,trainingSet,0.001,10,100);
+	result = CrossValidation::crossValidation(cLearned,trainingSet,0.001,5,100);
 
 	std::cout << result->toString() << std::endl;
 
-//	std::fstream file;
-//
-//	file.open(filename.c_str(),std::ios_base::out);
-//
-//	hmm.serialize(file);
+	learned->update(result);
+
+	std::fstream file;
+
+	file.open(filename.c_str(),std::ios_base::out);
+
+	learned->serialize(file);
+
+	file.close();
 //
 //	file.close();
 //
