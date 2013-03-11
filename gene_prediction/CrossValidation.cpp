@@ -43,7 +43,7 @@ boost::shared_ptr<HMMCompiled> CrossValidation::crossValidation(boost::shared_pt
 				hmms[i]->baumWelch(set,threshold);
 
 				for(std::list<std::vector<std::string> >::const_iterator tests = testset.begin(); tests != testset.end(); ++tests){
-					match[i] += hmms[i]->forward(*tests);
+					match[i] += std::log(hmms[i]->forward(*tests));
 				}
 			}
 
