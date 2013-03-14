@@ -41,6 +41,8 @@ private:
 	int _counter;
 
 	boost::random::uniform_01<boost::random::mt19937> _random;
+
+	double elnsum(double x, double y);
 public:
 	HMMCompiled();
 	~HMMCompiled();

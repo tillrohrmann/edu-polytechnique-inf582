@@ -11,13 +11,13 @@
 
 #include <boost/regex.hpp>
 
-#include "HMMSingleNode.hpp"
-#include "HMMContainer.hpp"
+#include "HMMNode.hpp"
 #include "nullPtr.hpp"
 #include "Exceptions.hpp"
 #include "HMMTransition.hpp"
 #include "HMMEmission.hpp"
 #include "HMMCompiled.hpp"
+#include "HMMConnection.hpp"
 
 HMM::HMM(): _nextID(0){
 }
@@ -31,13 +31,7 @@ ptrHMMNode HMM::getNode(int id){
 }
 
 int HMM::createNode(std::string name){
-	ptrHMMNode newNode(new HMMSingleNode(_nextID,name));
-	_nodes.insert(std::make_pair(_nextID,newNode));
-	return _nextID++;
-}
-
-int HMM::createContainer(std::string name){
-	ptrHMMNode newNode(new HMMContainer(_nextID,name));
+	ptrHMMNode newNode(new HMMNode(_nextID,name));
 	_nodes.insert(std::make_pair(_nextID,newNode));
 	return _nextID++;
 }
@@ -123,16 +117,6 @@ void HMM::addEndNode(int nodeID){
 		_endNodes.insert(nodeID);
 	}else{
 		throw std::invalid_argument("There is no node with ID:"+nodeID);
-	}
-}
-
-void HMM::insertModel(int containerID,const boost::shared_ptr<HMM>& hmm){
-	ptrHMMNode node = getNode(containerID);
-
-	if(node){
-		node->insertModel(hmm);
-	}else{
-		throw std::invalid_argument("There is no container with ID:"+containerID);
 	}
 }
 
@@ -317,6 +301,8 @@ void HMM::initializeRandom(int numberStates, boost::unordered_set<std::string>& 
 	clear();
 
 	for(int i=0; i< numberStates; i++){
+		ss.clear();
+		ss.str(std::string());
 		ss << "Node" << i;
 		this->createNode(ss.str());
 		ss.clear();
@@ -334,6 +320,69 @@ void HMM::initializeRandom(int numberStates, boost::unordered_set<std::string>& 
 	}
 
 	addStartNode(0,1);
+}
+
+void HMM::integrateHMM(boost::shared_ptr<HMM> hmm, const boost::unordered_map<std::string,HMMConnection>& connections){
+	boost::unordered_map<int,int> translation;
+	boost::unordered_set<int> nodes2ResetTransitions;
+	int id;
+
+	boost::unordered_map<int,boost::shared_ptr<HMMNode> >::const_iterator it = hmm->getNodes().begin();
+
+	for(; it != hmm->getNodes().end(); ++it){
+		id = createNode(it->second->getName());
+		translation.emplace(it->first,id);
+		boost::unordered_map<std::string,HMMEmission>::const_iterator jt = it->second->getEmission().begin();
+
+		for(; jt != it->second->getEmission().end(); ++jt){
+			addEmission(id,jt->second);
+		}
+	}
+
+	it = hmm->getNodes().begin();
+
+	for(;it != hmm->getNodes().end(); ++it){
+		boost::unordered_map<int,HMMTransition>::const_iterator jt = it->second->getTransition().begin();
+
+		for(; jt != it->second->getTransition().end(); ++jt){
+			addTransition(translation.at(it->first),HMMTransition(jt->second._probability,translation.at(jt->first),jt->second._constant));
+		}
+	}
+
+	for(boost::unordered_map<std::string,HMMConnection>::const_iterator it = connections.begin(); it != connections.end(); ++it){
+		int src = getNode(it->first)->getID();
+		int dest = getNode(it->second._destination)->getID();
+
+		addTransition(src,HMMTransition(it->second._probability,dest,it->second._constant));
+
+		if(it->second._probability < 0){
+			nodes2ResetTransitions.emplace(src);
+		}
+	}
+
+	for(boost::unordered_set<int>::const_iterator it = nodes2ResetTransitions.begin(); it != nodes2ResetTransitions.end(); ++it){
+		resetTransitions(*it);
+	}
+}
+
+void HMM::resetTransitions(int id){
+	boost::shared_ptr<HMMNode> node = getNode(id);
+
+	for(boost::unordered_map<int,HMMTransition>::iterator it =node->getTransition().begin(); it != node->getTransition().end(); ++it){
+		it->second._probability = -1;
+	}
+}
+
+void HMM::substituteEmissions(const boost::unordered_map<std::string,boost::unordered_map<std::string,std::string> >& substitution){
+	for(boost::unordered_map<int,boost::shared_ptr<HMMNode> >::iterator it = _nodes.begin(); it != _nodes.end(); ++it){
+		for(boost::unordered_map<std::string,boost::unordered_map<std::string,std::string> >::const_iterator jt = substitution.begin(); jt != substitution.end(); ++jt){
+			if(boost::regex_match(it->second->getName(),boost::regex(jt->first))){
+				it->second->substituteEmissions(jt->second);
+
+				break;
+			}
+		}
+	}
 }
 
 

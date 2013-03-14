@@ -67,6 +67,7 @@ bool HMMCompiled::isRandom() const{
 }
 
 void HMMCompiled::initialize(int numberNodes){
+	clear();
 	_numberNodes = numberNodes;
 
 	_transitions = new double[numberNodes*numberNodes];
@@ -312,11 +313,23 @@ void HMMCompiled::finishCompilation(){
 	}
 }
 
+double HMMCompiled::elnsum(double x, double y){
+	if(x == -std::numeric_limits<double>::infinity()){
+		return y;
+	}else if(y ==-std::numeric_limits<double>::infinity()){
+		return x;
+	}else if( x > y){
+		return x + std::log(1+std::exp(y-x));
+	}else{
+		return y + std::log(1+std::exp(x-y));
+	}
+}
+
 double HMMCompiled::forward(const std::vector<std::string>& sequence){
 	double* prev = new double[_numberNodes];
 	double* cur = new double[_numberNodes];
 	double *temp;
-	double result =0;
+	double result =-std::numeric_limits<double>::infinity();
 
 	std::vector<std::string>::const_iterator it = sequence.begin();
 
@@ -332,13 +345,13 @@ double HMMCompiled::forward(const std::vector<std::string>& sequence){
 		cur = temp;
 
 		for(int i =0; i< _numberNodes;i++){
-			cur[i] = 0;
+			cur[i] = -std::numeric_limits<double>::infinity();
 			if(!isSilent(i)){
 				for(int j =0; j< _numberNodes; j++){
-					cur[i] += std::exp(prev[j]+getLogTransition(j,i));
+					cur[i] = elnsum(cur[i],prev[j]+getLogTransition(j,i));
 				}
 
-				cur[i] = std::log(cur[i]) + getLogEmission(i,*it);
+				cur[i] = cur[i] + getLogEmission(i,*it);
 			}
 		}
 
@@ -346,14 +359,14 @@ double HMMCompiled::forward(const std::vector<std::string>& sequence){
 				order != _silentStateOrder.end(); ++order){
 			int node = *order;
 			for(int j =0; j< _numberNodes; j++){
-				cur[node] += std::exp(cur[j]+getLogTransition(j,node));
+				cur[node] = elnsum(cur[node],cur[j]+getLogTransition(j,node));
 			}
-			cur[node] = std::log(cur[node]);
 		}
 	}
 
+
 	for(int i =0; i< _numberNodes; i++){
-		result += std::exp(cur[i]);
+		result = elnsum(result,cur[i]);
 	}
 
 	delete [] prev;
@@ -366,7 +379,7 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence){
 	double* prev = new double[_numberNodes];
 	double* cur = new double[_numberNodes];
 	double *temp;
-	double result = 0;
+	double result = -std::numeric_limits<double>::infinity();
 
 	for(int i =0; i < _numberNodes; i++){
 		cur[i] = 0;
@@ -378,23 +391,19 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence){
 		cur = temp;
 
 		for(int i =0; i<_numberNodes; i++){
-			cur[i] = 0;
+			cur[i] = -std::numeric_limits<double>::infinity();
 			if(!isSilent(i)){
 				for(int j =0; j< _numberNodes; j++){
-					cur[i] += std::exp(prev[j]+getLogEmission(j,sequence[k])+getLogTransition(i,j));
+					cur[i] = elnsum(cur[i],prev[j]+getLogEmission(j,sequence[k])+getLogTransition(i,j));
 				}
-
-				cur[i] = std::log(cur[i]);
 			}
 		}
 
 		for(int i =_silentStateOrder.size()-1;i>=0;i--){
 			int node = _silentStateOrder[i];
 			for(int j=0; j< _numberNodes;j++){
-				cur[node] += std::exp(cur[j]+getLogTransition(node,j));
+				cur[node] = elnsum(cur[node],cur[j]+getLogTransition(node,j));
 			}
-
-			cur[node] = std::log(cur[node]);
 		}
 	}
 
@@ -403,7 +412,7 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence){
 	cur = temp;
 
 	for(int i =0; i< _numberNodes;i++){
-		cur[i] = 0;
+		cur[i] = -std::numeric_limits<double>::infinity();
 		if(!isSilent(i)){
 			cur[i]= getLogEmission(i,sequence[0])+prev[i];
 		}
@@ -412,13 +421,12 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence){
 	for(int i= _silentStateOrder.size()-1; i>=0;i--){
 		int node = _silentStateOrder[i];
 		for(int j =0; j< _numberNodes; j++){
-			cur[node] += std::exp(getLogTransition(node,j)+cur[j]);
+			cur[node] = elnsum(cur[node],getLogTransition(node,j)+cur[j]);
 		}
-		cur[node] = std::log(cur[node]);
 	}
 
 	for(int i =0; i< _numberNodes; i++){
-		result += std::exp(cur[i]+getLogInitialDistribution(i));
+		result = elnsum(result,cur[i]+getLogInitialDistribution(i));
 	}
 
 	delete [] prev;
@@ -448,7 +456,7 @@ void HMMCompiled::viterbi(const std::vector<std::string>& sequence, std::vector<
 		cur = temp;
 
 		for(int i=0; i< _numberNodes;i++){
-			cur[i] =0;
+			cur[i] =-std::numeric_limits<double>::infinity();
 			if(!isSilent(i)){
 				maxProb = -std::numeric_limits<double>::infinity();
 				maxPred = -1;
@@ -513,6 +521,11 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 	double prob;
 	bool initialRun = true;
 
+	if(trainingset.size() == 0){
+		std::cerr << "Training set is empty." << std::endl;
+		return;
+	}
+
 	do{
 		maxDiff = 0;
 		for(int i = 0; i<_numberNodes*_numberNodes; i++){
@@ -528,11 +541,25 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 		for(std::list<std::vector<std::string> >::const_iterator it = trainingset.begin(); it != trainingset.end(); ++it){
 			double * forward = new double[_numberNodes*(it->size())];
 			double * backward = new double[_numberNodes*(it->size())];
-			double probWord = 0;
+			double* gamma = new double[_numberNodes*(it->size())];
+			double* xi = new double[_numberNodes*_numberNodes*(it->size())];
+			double probWord = -std::numeric_limits<double>::infinity();
+
+//			for(int i=0; i< it->size(); i++){
+//				std::cout << it->operator [](i);
+//			}
+//			std::cout << std::endl;
+//
+//			std::cout << "Prob:" << this->forward(*it) << std::endl;
+//			std::cout << "Length:" << it->size() << std::endl;
+//
+//			if(this->forward(*it) == 0){
+//				std::cout << "Backward:" << this->backward(*it) << std::endl;
+//			}
 
 			for(int i=0; i<_numberNodes*(it->size()); i++){
-				forward[i] = 0;
-				backward[i] = 0;
+				forward[i] = -std::numeric_limits<double>::infinity();
+				backward[i] = -std::numeric_limits<double>::infinity();
 			}
 
 			if(initialRun)
@@ -550,13 +577,13 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 					_supersetEmissions.insert(it->at(c));
 
 				for(int i=0; i< _numberNodes; i++){
-					forward[_numberNodes*c+i] = 0;
+					forward[_numberNodes*c+i] = -std::numeric_limits<double>::infinity();
 					if(!isSilent(i)){
 						for(int j =0; j< _numberNodes;j++){
-							forward[_numberNodes*c+i] += std::exp(forward[_numberNodes*(c-1)+j]+getLogTransition(j,i));
+							forward[_numberNodes*c+i] = elnsum(forward[_numberNodes*c+i],forward[_numberNodes*(c-1)+j]+getLogTransition(j,i));
 						}
 
-						forward[_numberNodes*c+i] = std::log(forward[_numberNodes*c+i]) + getLogEmission(i,it->at(c));
+						forward[_numberNodes*c+i] = forward[_numberNodes*c+i] + getLogEmission(i,it->at(c));
 					}
 				}
 
@@ -564,15 +591,13 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 					int node = _silentStateOrder[i];
 
 					for(int j =0; j< _numberNodes; j++){
-						forward[_numberNodes*c+node] += std::exp(forward[_numberNodes*c+j]+getLogTransition(j,node));
+						forward[_numberNodes*c+node] = elnsum(forward[_numberNodes*c+node],forward[_numberNodes*c+j]+getLogTransition(j,node));
 					}
-
-					forward[_numberNodes*c+node] = std::log(forward[_numberNodes*c+node]);
 				}
 			}
 
 			for(int i = 0; i < _numberNodes; i++){
-				probWord += std::exp(forward[_numberNodes*(it->size()-1)+i]);
+				probWord = elnsum(probWord,forward[_numberNodes*(it->size()-1)+i]);
 			}
 
 			//calculate backward function
@@ -582,23 +607,55 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 
 			for(int c = it->size()-2; c>=0; c--){
 				for(int i =0; i< _numberNodes; i++){
-					backward[i+_numberNodes*c] = 0;
+					backward[i+_numberNodes*c] = -std::numeric_limits<double>::infinity();
 					if(!isSilent(i)){
 						for(int j =0; j< _numberNodes; j++){
-							backward[i+_numberNodes*c] += std::exp(backward[j+_numberNodes*(c+1)]+getLogTransition(i,j)+getLogEmission(j,it->at(c+1)));
+							backward[i+_numberNodes*c] = elnsum(backward[i+_numberNodes*c],backward[j+_numberNodes*(c+1)]+getLogTransition(i,j)+getLogEmission(j,it->at(c+1)));
 						}
-
-						backward[i+_numberNodes*c] = std::log(backward[i+_numberNodes*c]);
 					}
 				}
 
 				for(int i = _silentStateOrder.size()-1; i>=0; i--){
 					int node = _silentStateOrder[i];
 					for(int j =0; j< _numberNodes; j++){
-						backward[node+_numberNodes*c] += std::exp(backward[j+_numberNodes*c]+getLogTransition(node,j));
+						backward[node+_numberNodes*c] = elnsum(backward[node+_numberNodes*c],backward[j+_numberNodes*c]+getLogTransition(node,j));
 					}
+				}
+			}
 
-					backward[node+_numberNodes*c] = std::log(backward[node+_numberNodes*c]);
+			//calculate gamma function
+			for(int c = 0; c < it->size(); c++){
+				double normalizer = -std::numeric_limits<double>::infinity();
+				for(int i=0; i< _numberNodes;i++){
+					gamma[_numberNodes*c+i] = forward[_numberNodes*c+i]+backward[_numberNodes*c+i];
+					normalizer = elnsum(normalizer,forward[_numberNodes*c+i]+backward[_numberNodes*c+i]);
+				}
+
+				for(int i=0; i<_numberNodes;i++){
+					gamma[_numberNodes*c+i] -= normalizer;
+				}
+			}
+
+			//calculate xi function
+			for(int c= 0; c < it->size()-1; c++){
+				double normalizer = -std::numeric_limits<double>::infinity();
+				for(int i=0; i< _numberNodes;i++){
+					for(int j=0; j<_numberNodes;j++){
+						if(isSilent(j)){
+							xi[c*_numberNodes*_numberNodes+i*_numberNodes+j] = forward[c*_numberNodes+i] + getLogTransition(i,j)
+																+ backward[(c)*_numberNodes+j];
+						}else{
+							xi[c*_numberNodes*_numberNodes+i*_numberNodes+j] = forward[c*_numberNodes+i] + getLogTransition(i,j) + getLogEmission(j,it->at(c+1))
+									+ backward[(c+1)*_numberNodes+j];
+						}
+						normalizer = elnsum(normalizer,xi[c*_numberNodes*_numberNodes+i*_numberNodes+j] );
+					}
+				}
+
+				for(int i=0; i< _numberNodes;i++){
+					for(int j=0; j<_numberNodes;j++){
+						xi[c*_numberNodes*_numberNodes+i*_numberNodes+j] -= normalizer;
+					}
 				}
 			}
 
@@ -606,37 +663,51 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 			// transitions
 			for(int i =0; i<_numberNodes;i++){
 				for(int j = 0; j < _numberNodes; j++){
-					double temp =0;
-					if(isSilent(j)){
-						for(int t = 0; t < it->size(); t++){
-							temp += std::exp(forward[t*_numberNodes +i]+backward[t*_numberNodes + j]);
-						}
-					}else{
-						for(int t = 0; t < it->size()-1; t++){
-							temp += std::exp(forward[t*_numberNodes + i]+backward[(t+1)*_numberNodes + j]+getLogEmission(j,it->at(t+1)));
-						}
+					double denominator =-std::numeric_limits<double>::infinity();
+					double numerator = -std::numeric_limits<double>::infinity();
+					for(int t = 0; t < it->size(); t++){
+						numerator = elnsum(numerator,xi[t*_numberNodes*_numberNodes+i*_numberNodes+j]);
+						denominator = elnsum(denominator,gamma[t*_numberNodes+i]);
 					}
 
-					cTransitions[i*_numberNodes + j] += getTransition(i,j)*temp/probWord;
+					cTransitions[i*_numberNodes + j] += std::exp(numerator-denominator);
 				}
 			}
 
 			// emissions
 			for(int i =0; i< _numberNodes; i++){
 				if(!isSilent(i)){
-					for(int t = 0; t < it->size(); t++){
-						cEmissions[i][it->at(t)] += std::exp(forward[t*_numberNodes+i]+backward[t*_numberNodes+i])/probWord;
+					for(boost::unordered_set<std::string>::const_iterator jt = _supersetEmissions.begin(); jt != _supersetEmissions.end(); ++jt){
+						double numerator = -std::numeric_limits<double>::infinity();
+						double denominator = -std::numeric_limits<double>::infinity();
+
+						for(int t = 0; t < it->size(); t++){
+							if(it->at(t) == *jt){
+								numerator = elnsum(numerator,gamma[t*_numberNodes+i]);
+							}
+							denominator = elnsum(denominator,gamma[t*_numberNodes+i]);
+						}
+
+						if(cEmissions[i].count(*jt) ==0){
+							cEmissions[i][*jt] = std::exp(numerator-denominator);
+						}else{
+							cEmissions[i][*jt] += std::exp(numerator-denominator);
+						}
 					}
+
+
 				}
 			}
 
 			// initial distribution
 			for(int i =0; i<_numberNodes;i++){
-				cInitial[i] += std::exp(forward[i]+backward[i])/probWord;
+				cInitial[i] += std::exp(gamma[i]);
 			}
 
 			delete [] forward;
 			delete [] backward;
+			delete [] gamma;
+			delete [] xi;
 		}
 
 		// smoothing by pseudo counts
@@ -662,13 +733,16 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 
 			for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
 				prob = it->second/sum;
-
-				if(maxDiff < std::abs(_emissions[i].at(it->first)._prob-prob)){
-					maxDiff = std::abs(_emissions[i].at(it->first)._prob-prob);
+				double eProb = getEmission(i,it->first);
+				if(maxDiff < std::abs(eProb-prob)){
+					maxDiff = std::abs(eProb-prob);
 				}
 
-				if(!_emissions[i].at(it->first)._constant)
+				if(_emissions[i].count(it->first) ==0 && (1-constantRest)*prob >0){
 					_emissions[i][it->first]._prob = (1-constantRest)*prob;
+				}else if(_emissions[i].count(it->first) > 0 && !_emissions[i].at(it->first)._constant){
+					_emissions[i][it->first]._prob = (1-constantRest)*prob;
+				}
 			}
 		}
 
@@ -711,6 +785,8 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 		}
 
 		initialRun = false;
+
+		std::cout << "MaxDiff:" << maxDiff << std::endl;
 	}while(maxDiff > threshold);
 
 	delete [] cTransitions;

@@ -17,7 +17,7 @@ public:
 	bool _constant;
 	int _destination;
 
-	HMMTransition(double probability=-1.0, int destination = -1, bool constant=true);
+	HMMTransition(double probability=-1.0, int destination = -1, bool constant=false);
 
 	void serialize(std::ostream& os) const;
 

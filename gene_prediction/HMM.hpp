@@ -14,9 +14,8 @@
 
 class HMMNode;
 class HMMCompiled;
-class HMMSingleNode;
-class HMMContainer;
 class HMMTransition;
+class HMMConnection;
 class HMMEmission;
 
 typedef boost::shared_ptr<HMMNode> ptrHMMNode;
@@ -44,7 +43,6 @@ public:
 	bool hasNode(int id);
 
 	int createNode(std::string name ="");
-	int createContainer(std::string name = "");
 
 	void removeNode(int id);
 
@@ -57,8 +55,6 @@ public:
 	void addStartNode(int nodeID,double probability);
 	void addEndNode(int nodeID);
 
-	void insertModel(int containerID, const boost::shared_ptr<HMM>& hmm);
-
 	void serialize(std::ostream& os) const;
 	static void deserialize(std::istream& is,boost::shared_ptr<HMM> hmm);
 
@@ -70,6 +66,10 @@ public:
 
 	void initializeRandom(int numberStates, boost::unordered_set<std::string>& emissions);
 
+	void integrateHMM(boost::shared_ptr<HMM> hmm, const boost::unordered_map<std::string,HMMConnection>& connections);
+	void resetTransitions(int id);
+
+	void substituteEmissions(const boost::unordered_map<std::string, boost::unordered_map<std::string, std::string> >& substitution);
 };
 
 

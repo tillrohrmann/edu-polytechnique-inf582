@@ -18,7 +18,7 @@ boost::shared_ptr<HMMCompiled> CrossValidation::crossValidation(boost::shared_pt
 	if(compiled->isRandom()){
 		double* match = new double[tries];
 		boost::shared_ptr<HMMCompiled>* hmms = new boost::shared_ptr<HMMCompiled>[tries];
-		double max=0;
+		double max=-std::numeric_limits<double>::infinity();
 		int maxIdx=-1;
 
 		for(int i=0; i< tries; i++){
@@ -32,6 +32,7 @@ boost::shared_ptr<HMMCompiled> CrossValidation::crossValidation(boost::shared_pt
 		std::list<std::vector<std::string> >::iterator it  = set.begin();
 
 		for(int n=0; n < trainingSet.size();n+=testsetSize){
+			std::cout << "testset:" << n << std::endl;
 			int maxValue = testsetSize>trainingSet.size()-n ? trainingSet.size()-n:testsetSize;
 
 			std::advance(it,maxValue);
@@ -39,11 +40,15 @@ boost::shared_ptr<HMMCompiled> CrossValidation::crossValidation(boost::shared_pt
 			testset.splice(testset.begin(),set,set.begin(),it);
 
 			for(int i =0; i< tries;i++){
-
+				std::cout << "try:" << i << std::endl;
+				boost::shared_ptr<HMMCompiled> hmm(new HMMCompiled());
+				//hmms[i]->copy(hmm);
 				hmms[i]->baumWelch(set,threshold);
 
+				std::cout << hmms[i]->toString() << std::endl;
+
 				for(std::list<std::vector<std::string> >::const_iterator tests = testset.begin(); tests != testset.end(); ++tests){
-					match[i] += std::log(hmms[i]->forward(*tests));
+					match[i] += hmms[i]->forward(*tests);
 				}
 			}
 
@@ -58,6 +63,9 @@ boost::shared_ptr<HMMCompiled> CrossValidation::crossValidation(boost::shared_pt
 		}
 
 		result = hmms[maxIdx];
+
+		std::cout << "run bw on result" << std::endl;
+		//result->baumWelch(set,threshold);
 
 		delete [] match;
 		delete [] hmms;

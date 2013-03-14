@@ -34,7 +34,9 @@ public:
 
 	int getID() const{ return _id; }
 	Transition& getTransition() { return _transitions; }
+	const Transition& getTransition() const { return _transitions;}
 	Emission& getEmission() { return _emissions; }
+	const Emission& getEmission() const { return _emissions;}
 	std::string getName() const{ return _name; }
 
 	virtual int size() const { return 1; }
@@ -49,9 +51,6 @@ public:
 	virtual void addEmission(const HMMEmission& emission);
 	virtual void removeEmission(const std::string& token);
 
-	virtual void insertModel(const boost::shared_ptr<HMM>& hmm);
-	virtual boost::shared_ptr<HMM> replaceModel(const boost::shared_ptr<HMM>& hmm);
-
 	virtual void serialize(std::ostream& os) const;
 
 	virtual void buildMapping(HMMCompiled & compiled);
@@ -63,6 +62,8 @@ public:
 
 	static boost::shared_ptr<HMMNode> deserialize(std::istream& is);
 	static void serialize(std::ostream& os, boost::shared_ptr<HMMNode> hmmNode);
+
+	void substituteEmissions(const boost::unordered_map<std::string, std::string>& substitution);
 };
 
 

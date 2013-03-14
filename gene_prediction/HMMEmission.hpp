@@ -16,7 +16,7 @@ public:
 	std::string _emissionToken;
 	bool _constant;
 
-	HMMEmission(double probability = -1.0,const std::string& emissionToken = "", bool constant = true);
+	HMMEmission(double probability = -1.0,const std::string& emissionToken = "", bool constant = false);
 
 	void serialize(std::ostream& os) const;
 

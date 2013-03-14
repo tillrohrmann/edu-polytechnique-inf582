@@ -12,8 +12,6 @@
 #include <boost/regex.hpp>
 
 #include "Exceptions.hpp"
-#include "HMMContainer.hpp"
-#include "HMMSingleNode.hpp"
 #include "HMMEmission.hpp"
 #include "HMMTransition.hpp"
 #include "HMMCompiled.hpp"
@@ -47,15 +45,6 @@ void HMMNode::addEmission(const HMMEmission& emission){
 
 void HMMNode::removeEmission(const std::string& token){
 	_emissions.erase(token);
-}
-
-void HMMNode::insertModel(const boost::shared_ptr<HMM>& hmm){
-	//throw OperationNotSupportedException("The operation insertModel is not supported for that type of HMMNode.");
-}
-
-boost::shared_ptr<HMM> HMMNode::replaceModel(const boost::shared_ptr<HMM>& hmm){
-	//throw OperationNotSupportedException("The operation replaceModel is not supported for that type of HMMNode.");
-	return nullPtr;
 }
 
 void HMMNode::serialize(std::ostream& os) const{
@@ -159,30 +148,12 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 }
 
 boost::shared_ptr<HMMNode> HMMNode::deserialize(std::istream& is){
-	std::string line;
-
-	std::getline(is,line);
-
-	if(line == "Container"){
-		boost::shared_ptr<HMMContainer> container(new HMMContainer());
-		HMMContainer::deserialize(is,container);
-		return container;
-	}else{
-		boost::shared_ptr<HMMNode> node(new HMMSingleNode());
-		HMMNode::deserialize(is,node);
-		return node;
-	}
+	boost::shared_ptr<HMMNode> node(new HMMNode());
+	HMMNode::deserialize(is,node);
+	return node;
 }
 
 void HMMNode::serialize(std::ostream& os, boost::shared_ptr<HMMNode> node){
-	boost::shared_ptr<HMMContainer> hmmContainer = boost::dynamic_pointer_cast<HMMContainer>(node);
-
-	if(hmmContainer){
-		os << "Container" << std::endl;
-	}else{
-		os << "Single node" << std::endl;
-	}
-
 	node->serialize(os);
 }
 
@@ -222,4 +193,18 @@ void HMMNode::updateValues(HMMCompiled& compiled, HMM& hmm){
 			it != _emissions.end(); ++it){
 		it->second._probabiltiy = compiled.getEmission(shared_from_this(),it->second._emissionToken);
 	}
+}
+
+void HMMNode::substituteEmissions(const boost::unordered_map<std::string, std::string>& substitution){
+	boost::unordered_map<std::string, HMMEmission> newValues;
+	for(boost::unordered_map<std::string, HMMEmission>::const_iterator it = _emissions.begin(); it != _emissions.end();){
+		if(substitution.count(it->first) > 0){
+			newValues.emplace(substitution.at(it->first),HMMEmission(it->second._probabiltiy,substitution.at(it->first),it->second._constant));
+			it = _emissions.erase(it);
+		}else{
+			++it;
+		}
+	}
+
+	_emissions.insert(newValues.begin(),newValues.end());
 }

@@ -14,8 +14,40 @@
 #include <fstream>
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include "GeneDatabase.hpp"
+#include "Models.hpp"
+#include "HMMConnection.hpp"
 
 int main(int argc, char** argv){
+
+//	GeneDatabase database;
+//	database.importFile("DNASequences.fasta");
+//	database.importCDS("CDS.tbl");
+//
+//	std::cout << std::log(0) << std::endl;
+//
+//	std::cout << -std::log(0) + std::log(0) << std::endl;
+//
+//	std::cout << database.size() << std::endl;
+//
+//	boost::shared_ptr<HMMCompiled> chmm(new HMMCompiled());
+//	boost::shared_ptr<HMM> exon = Models::createExonModel();
+//	exon->compile(chmm);
+//
+//	std::vector<std::vector<std::string> > trainingset;
+//
+//	database.extractExons(trainingset);
+//
+//	std::vector<std::vector<std::string> > smallset(trainingset.begin(),trainingset.begin()+500);
+//
+//	std::cout << trainingset.size() << std::endl;
+//
+//	CrossValidation::crossValidation(chmm,smallset,0.001,1,100);
+//
+//	std::cout << chmm->toString() << std::endl;
+
+
+
 	std::string filename = "test.hmm";
 	boost::shared_ptr<HMM> hmm(new HMM());
 	boost::shared_ptr<HMM> learned(new HMM());
@@ -102,7 +134,9 @@ int main(int argc, char** argv){
 
 	learned->compile(cLearned);
 
+	std::cout << "Crossvalidation" << std::endl;
 	result = CrossValidation::crossValidation(cLearned,trainingSet,0.001,5,100);
+	std::cout << "finished cv" << std::endl;
 
 	std::cout << result->toString() << std::endl;
 
@@ -115,18 +149,18 @@ int main(int argc, char** argv){
 	learned->serialize(file);
 
 	file.close();
-//
-//	file.close();
-//
-//	boost::shared_ptr<HMM> newHMM(new HMM());
-//
-//	file.open(filename.c_str(),std::ios_base::in);
-//
-//	HMM::deserialize(file,newHMM);
-//
-//	file.close();
-//
-//	newHMM->serialize(std::cout);
+
+	file.close();
+
+	boost::shared_ptr<HMM> newHMM(new HMM());
+
+	file.open(filename.c_str(),std::ios_base::in);
+
+	HMM::deserialize(file,newHMM);
+
+	file.close();
+
+	newHMM->serialize(std::cout);
 
 	return 0;
 }
