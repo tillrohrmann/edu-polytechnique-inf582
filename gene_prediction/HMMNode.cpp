@@ -18,11 +18,11 @@
 #include "HMM.hpp"
 #include "nullPtr.hpp"
 
-HMMNode::HMMNode(int id,const std::string& name): _id(id),_name(name),_isSilent(false){
+HMMNode::HMMNode(int id,const std::string& name): _id(id),_name(name),_isSilent(false),_constantEmissions(false),_constantTransitions(false){
 }
 
-HMMNode::HMMNode(int id,const std::string& name,const Transition& transitions,const Emission& emissions) :
-		_id(id), _name(name), _isSilent(false){
+HMMNode::HMMNode(int id,const std::string& name,const Transition& transitions,const Emission& emissions, bool constantTransitions, bool constantEmissions) :
+		_id(id), _name(name), _isSilent(false),_constantEmissions(constantEmissions),_constantTransitions(constantTransitions){
 	_transitions.insert(transitions.begin(),transitions.end());
 	_emissions.insert(emissions.begin(),emissions.end());
 }
@@ -169,17 +169,13 @@ void HMMNode::buildTransitions(HMMCompiled& compiled, HMM& hmm){
 	for(Transition::const_iterator it = _transitions.begin(); it != _transitions.end(); ++it){
 		HMMTransition transition = it->second;
 
-		if(transition._constant){
-			compiled.addConstantTransition(shared_from_this(),hmm.getNode(transition._destination));
-		}
-
 		compiled.addTransition(shared_from_this(),hmm.getNode(transition._destination),transition._probability);
 	}
 
 	for(Emission::const_iterator it = _emissions.begin(); it != _emissions.end(); ++it){
 		HMMEmission emission = it->second;
 
-		compiled.addEmission(shared_from_this(),emission._emissionToken,emission._probabiltiy,emission._constant);
+		compiled.addEmission(shared_from_this(),emission._emissionToken,emission._probabiltiy);
 	}
 }
 
@@ -199,7 +195,7 @@ void HMMNode::substituteEmissions(const boost::unordered_map<std::string, std::s
 	boost::unordered_map<std::string, HMMEmission> newValues;
 	for(boost::unordered_map<std::string, HMMEmission>::const_iterator it = _emissions.begin(); it != _emissions.end();){
 		if(substitution.count(it->first) > 0){
-			newValues.emplace(substitution.at(it->first),HMMEmission(it->second._probabiltiy,substitution.at(it->first),it->second._constant));
+			newValues.emplace(substitution.at(it->first),HMMEmission(substitution.at(it->first),it->second._probabiltiy));
 			it = _emissions.erase(it);
 		}else{
 			++it;

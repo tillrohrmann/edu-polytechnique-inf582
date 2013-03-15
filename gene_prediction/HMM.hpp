@@ -42,7 +42,7 @@ public:
 
 	bool hasNode(int id);
 
-	int createNode(std::string name ="");
+	int createNode(std::string name ="",bool constantTransitions=false, bool constantEmissions=false);
 
 	void removeNode(int id);
 
@@ -52,8 +52,13 @@ public:
 	void addTransitions(int src, const std::vector<HMMTransition>& transitions);
 	void addEmissions(int src, const std::vector<HMMEmission>& emissions);
 
+	void setConstantTransitions(int src, bool constant);
+	void setConstantEmissions(int src, bool constant);
+
 	void addStartNode(int nodeID,double probability);
+	void addStartNode(const std::string& nodeName, double probability);
 	void addEndNode(int nodeID);
+	void addEndNode(const std::string & nodeName);
 
 	void serialize(std::ostream& os) const;
 	static void deserialize(std::istream& is,boost::shared_ptr<HMM> hmm);

@@ -30,9 +30,13 @@ ptrHMMNode HMM::getNode(int id){
 	}
 }
 
-int HMM::createNode(std::string name){
+int HMM::createNode(std::string name,bool constantTransitions, bool constantEmissions){
 	ptrHMMNode newNode(new HMMNode(_nextID,name));
 	_nodes.insert(std::make_pair(_nextID,newNode));
+
+	setConstantEmissions(_nextID,constantEmissions);
+	setConstantTransitions(_nextID,constantTransitions);
+
 	return _nextID++;
 }
 
@@ -76,6 +80,26 @@ void HMM::addEmission(int src, const HMMEmission& emission){
 	}
 }
 
+void HMM::setConstantEmissions(int src, bool constant){
+	ptrHMMNode node = getNode(src);
+
+	if(node){
+		node->constantEmissions() = constant;
+	}else{
+		throw std::invalid_argument("Could not find node with ID:"+src);
+	}
+}
+
+void HMM::setConstantTransitions(int src, bool constant){
+	ptrHMMNode node = getNode(src);
+
+	if(node){
+		node->constantTransitions() = constant;
+	}else{
+		throw std::invalid_argument("Could not find node with ID:"+src);
+	}
+}
+
 void HMM::addTransitions(int src, const std::vector<HMMTransition> & transitions){
 	ptrHMMNode node = getNode(src);
 
@@ -112,11 +136,31 @@ void HMM::addStartNode(int nodeID, double probability){
 	}
 }
 
+void HMM::addStartNode(const std::string& nodeName, double probability){
+	boost::shared_ptr<HMMNode> node = getNode(nodeName);
+
+	if(node){
+		_startNodes.emplace(node->getID(),probability);
+	}else{
+		throw std::invalid_argument("There is no node with name:"+nodeName);
+	}
+}
+
 void HMM::addEndNode(int nodeID){
 	if(hasNode(nodeID)){
 		_endNodes.insert(nodeID);
 	}else{
 		throw std::invalid_argument("There is no node with ID:"+nodeID);
+	}
+}
+
+void HMM::addEndNode(const std::string& nodeName){
+	boost::shared_ptr<HMMNode> node = getNode(nodeName);
+
+	if(node){
+		_endNodes.insert(node->getID());
+	}else{
+		throw std::invalid_argument("There is no node with name:"+nodeName);
 	}
 }
 
@@ -310,12 +354,12 @@ void HMM::initializeRandom(int numberStates, boost::unordered_set<std::string>& 
 
 	for(int i=0; i<numberStates;i++){
 		for(int j =0; j<numberStates;j++){
-			addTransition(i,HMMTransition(-1,j,false));
+			addTransition(i,HMMTransition(j));
 		}
 
 		for(boost::unordered_set<std::string>::const_iterator it = emissions.begin();
 				it != emissions.end(); ++it){
-			addEmission(i,HMMEmission(-1,*it,false));
+			addEmission(i,HMMEmission(*it));
 		}
 	}
 
@@ -330,7 +374,8 @@ void HMM::integrateHMM(boost::shared_ptr<HMM> hmm, const boost::unordered_map<st
 	boost::unordered_map<int,boost::shared_ptr<HMMNode> >::const_iterator it = hmm->getNodes().begin();
 
 	for(; it != hmm->getNodes().end(); ++it){
-		id = createNode(it->second->getName());
+		id = createNode(it->second->getName(),it->second->constantTransitions(),it->second->constantEmissions());
+
 		translation.emplace(it->first,id);
 		boost::unordered_map<std::string,HMMEmission>::const_iterator jt = it->second->getEmission().begin();
 
@@ -345,7 +390,7 @@ void HMM::integrateHMM(boost::shared_ptr<HMM> hmm, const boost::unordered_map<st
 		boost::unordered_map<int,HMMTransition>::const_iterator jt = it->second->getTransition().begin();
 
 		for(; jt != it->second->getTransition().end(); ++jt){
-			addTransition(translation.at(it->first),HMMTransition(jt->second._probability,translation.at(jt->first),jt->second._constant));
+			addTransition(translation.at(it->first),HMMTransition(translation.at(jt->first),jt->second._probability));
 		}
 	}
 
@@ -353,7 +398,7 @@ void HMM::integrateHMM(boost::shared_ptr<HMM> hmm, const boost::unordered_map<st
 		int src = getNode(it->first)->getID();
 		int dest = getNode(it->second._destination)->getID();
 
-		addTransition(src,HMMTransition(it->second._probability,dest,it->second._constant));
+		addTransition(src,HMMTransition(dest,it->second._probability));
 
 		if(it->second._probability < 0){
 			nodes2ResetTransitions.emplace(src);
@@ -362,6 +407,7 @@ void HMM::integrateHMM(boost::shared_ptr<HMM> hmm, const boost::unordered_map<st
 
 	for(boost::unordered_set<int>::const_iterator it = nodes2ResetTransitions.begin(); it != nodes2ResetTransitions.end(); ++it){
 		resetTransitions(*it);
+		setConstantTransitions(*it,false);
 	}
 }
 

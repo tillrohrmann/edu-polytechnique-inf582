@@ -2,12 +2,12 @@ SRC:=$(wildcard *.cpp)
 
 OBJ:=$(SRC:.cpp=.o)
 
-CFLAGS:=-ggdb -O3
-CXXFLAGS:=$(CFLAGS)
+CFLAGS:=-ggdb -O3 -I/opt/local/include
+CXXFLAGS:=$(CFLAGS) 
 CC:=gcc
 CXX:=g++
 LDFLAGS:=
-LIBS:=-lboost_regex
+LIBS:=-L/opt/local/lib -lboost_regex
 
 OUTPUT:=gp
 

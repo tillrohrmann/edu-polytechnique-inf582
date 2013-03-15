@@ -9,9 +9,13 @@
 
 #include <sstream>
 #include <iostream>
+#include <stdlib.h>
+
+boost::random::uniform_01<boost::random::mt19937> DatabaseEntry::_random(boost::random::mt19937(time(NULL)));
 
 DatabaseEntry::DatabaseEntry(const std::string& id, const std::vector<std::string>& data):
 	_id(id),_data(data){
+	instantiateData();
 }
 
 DatabaseEntry::DatabaseEntry(){
@@ -38,6 +42,15 @@ std::string DatabaseEntry::toString() const{
 	}
 
 	return ss.str();
+}
+
+void DatabaseEntry::instantiateData(){
+	std::string alphabet[] = {"A","C","G","T"};
+	for(int i=0; i< _data.size(); i++){
+		if(_data[i] == "N"){
+			_data[i] = alphabet[(int)(4*_random())];
+		}
+	}
 }
 
 void DatabaseEntry::addExon(int start,int end){
@@ -95,6 +108,7 @@ void DatabaseEntry::extractAnnotatedSequence(std::vector<std::vector<std::string
 	std::vector<std::string> sequence;
 
 	for(int i=0; i<_data.size();i++){
+		ss.str("");
 		ss.clear();
 		ss << annotation[i];
 		ss << _data[i];

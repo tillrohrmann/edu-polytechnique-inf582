@@ -18,9 +18,10 @@
 #include "nullPtr.hpp"
 #include "Exceptions.hpp"
 #include "Pair.hpp"
+#include "HMMNode.hpp"
 
 HMMCompiled::HMMCompiled():
-	_numberNodes(0),_transitions(NULL),_emissions(NULL),_initialDistribution(NULL),_constantTransitions(NULL),
+	_numberNodes(0),_transitions(NULL),_constantTransitionNodes(NULL), _constantEmissionNodes(NULL),_emissions(NULL),_initialDistribution(NULL),
 	_counter(0),_random(boost::random::mt19937(time(NULL))){
 }
 
@@ -34,7 +35,8 @@ void HMMCompiled::clear(){
 	delete [] _transitions;
 	delete [] _emissions;
 	delete [] _initialDistribution;
-	delete [] _constantTransitions;
+	delete [] _constantTransitionNodes;
+	delete [] _constantEmissionNodes;
 
 	_silentStates.clear();
 	_int2Node.clear();
@@ -55,9 +57,9 @@ bool HMMCompiled::isRandom() const{
 			return true;
 		}
 
-		for(boost::unordered_map<std::string,EmissionInfo>::const_iterator it = _emissions[i].begin();
+		for(boost::unordered_map<std::string,double>::const_iterator it = _emissions[i].begin();
 				it != _emissions[i].end(); ++it){
-			if(it->second._prob <0){
+			if(it->second <0){
 				return true;
 			}
 		}
@@ -72,16 +74,18 @@ void HMMCompiled::initialize(int numberNodes){
 
 	_transitions = new double[numberNodes*numberNodes];
 	_initialDistribution = new double[numberNodes];
-	_emissions = new boost::unordered_map<std::string,EmissionInfo>[numberNodes];
-	_constantTransitions = new bool[numberNodes*numberNodes];
+	_emissions = new boost::unordered_map<std::string,double>[numberNodes];
+	_constantEmissionNodes = new bool[numberNodes];
+	_constantTransitionNodes = new bool[numberNodes];
 
 	for(int i =0; i< numberNodes*numberNodes;i++){
 		_transitions[i] = 0;
-		_constantTransitions[i] = false;
 	}
 
 	for(int i =0; i< numberNodes;i++){
 		_initialDistribution[i] = 0;
+		_constantEmissionNodes[i] = false;
+		_constantTransitionNodes[i] = false;
 	}
 }
 
@@ -101,8 +105,27 @@ int HMMCompiled::getIndex(boost::shared_ptr<HMMNode> node) const{
 	}
 }
 
+bool HMMCompiled::hasConstantTransitions(int node) const{
+	if(std::abs(node) >= _numberNodes){
+		throw std::invalid_argument("Node index out of range");
+	}
+
+	return _constantTransitionNodes[node];
+}
+
+bool HMMCompiled::hasConstantEmissions(int node) const{
+	if(std::abs(node) >= _numberNodes){
+		throw std::invalid_argument("Node index out of range");
+	}
+
+	return _constantEmissionNodes[node];
+}
+
 void HMMCompiled::addMapping(boost::shared_ptr<HMMNode> node){
 	if(_node2Int.count(node) == 0){
+		_constantTransitionNodes[_counter] = node->constantTransitions();
+		_constantEmissionNodes[_counter] = node->constantEmissions();
+
 		_node2Int[node] = _counter;
 		_int2Node[_counter++] = node;
 	}
@@ -123,21 +146,6 @@ void HMMCompiled::addSilentNode(boost::shared_ptr<HMMNode> node){
 	_silentStates.emplace(index);
 }
 
-void HMMCompiled::addConstantTransition(boost::shared_ptr<HMMNode> src, boost::shared_ptr<HMMNode> dest){
-	int srcIndex = getIndex(src);
-	int destIndex = getIndex(dest);
-
-	if(srcIndex < 0){
-		throw std::invalid_argument("addConstantTransition: Src could not be found in the mapping.");
-	}
-
-	if(destIndex < 0){
-		throw std::invalid_argument("addConstantTransition: Dest could not be found in the mapping.");
-	}
-
-	setConstant(srcIndex,destIndex,true);
-}
-
 void HMMCompiled::addTransition(boost::shared_ptr<HMMNode> src, boost::shared_ptr<HMMNode> dest, double probability){
 	int srcIndex = getIndex(src);
 	int destIndex = getIndex(dest);
@@ -153,14 +161,14 @@ void HMMCompiled::addTransition(boost::shared_ptr<HMMNode> src, boost::shared_pt
 	setTransition(srcIndex,destIndex,probability);
 }
 
-void HMMCompiled::addEmission(boost::shared_ptr<HMMNode> src, const std::string& token, double probability, bool constant){
+void HMMCompiled::addEmission(boost::shared_ptr<HMMNode> src, const std::string& token, double probability){
 	int index = getIndex(src);
 
 	if(index < 0){
 		throw std::invalid_argument("addEmission: Src could not be found in the mapping.");
 	}
 
-	_emissions[index].emplace(token,EmissionInfo(probability,constant));
+	_emissions[index].emplace(token,probability);
 }
 
 double HMMCompiled::getTransition(boost::shared_ptr<HMMNode> src, boost::shared_ptr<HMMNode> dest){
@@ -185,12 +193,12 @@ double HMMCompiled::getEmission(boost::shared_ptr<HMMNode> src, const std::strin
 		throw std::invalid_argument("getEmission: Src could not be found in the mapping.");
 	}
 
-	return _emissions[srcIndex].at(token)._prob;
+	return _emissions[srcIndex].at(token);
 }
 
 double HMMCompiled::getEmission(int id, const std::string &token) const{
 	if(_emissions[id].count(token) >0){
-		return _emissions[id].at(token)._prob;
+		return _emissions[id].at(token);
 	}else{
 		return 0;
 	}
@@ -227,10 +235,10 @@ std::string HMMCompiled::toString() const{
 	ss << "Emissions:" << std::endl;
 
 	for(int i=0; i < _numberNodes; i++){
-		ss << i  << ":";
-		for(boost::unordered_map<std::string,EmissionInfo>::const_iterator it = _emissions[i].begin();
+		ss << _int2Node.at(i)->getName()  << ":";
+		for(boost::unordered_map<std::string,double>::const_iterator it = _emissions[i].begin();
 				it != _emissions[i].end(); ++it){
-			ss << it->first << "=" << it->second._prob << " ";
+			ss << it->first << "=" << it->second << " ";
 		}
 		ss << std::endl;
 	}
@@ -240,7 +248,7 @@ std::string HMMCompiled::toString() const{
 	ss << "Initial distribution:" << std::endl;
 
 	for(int i =0; i< _numberNodes; i++){
-		ss << i << ":" << _initialDistribution[i] << std::endl;
+		ss << _int2Node.at(i)->getName() << ":" << _initialDistribution[i] << std::endl;
 	}
 
 	return ss.str();
@@ -307,7 +315,7 @@ void HMMCompiled::finishCompilation(){
 	}
 
 	for(int i=0; i< _numberNodes; i++){
-		for(boost::unordered_map<std::string,EmissionInfo>::const_iterator it = _emissions[i].begin(); it!= _emissions[i].end(); ++it){
+		for(boost::unordered_map<std::string,double>::const_iterator it = _emissions[i].begin(); it!= _emissions[i].end(); ++it){
 				_supersetEmissions.insert(it->first);
 		}
 	}
@@ -517,7 +525,7 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 	double* cTransitions = new double[_numberNodes*_numberNodes];
 	boost::unordered_map<std::string,double>* cEmissions = new boost::unordered_map<std::string,double>[_numberNodes];
 	double* cInitial = new double[_numberNodes];
-	double maxDiff;
+	double maxDiff, maxDiffTransition, maxDiffEmission, maxDiffInitial;
 	double prob;
 	bool initialRun = true;
 
@@ -528,6 +536,9 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 
 	do{
 		maxDiff = 0;
+		maxDiffTransition = 0;
+		maxDiffEmission = 0;
+		maxDiffInitial = 0;
 		for(int i = 0; i<_numberNodes*_numberNodes; i++){
 			cTransitions[i] = 0;
 		}
@@ -541,26 +552,14 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 		for(std::list<std::vector<std::string> >::const_iterator it = trainingset.begin(); it != trainingset.end(); ++it){
 			double * forward = new double[_numberNodes*(it->size())];
 			double * backward = new double[_numberNodes*(it->size())];
-			double* gamma = new double[_numberNodes*(it->size())];
-			double* xi = new double[_numberNodes*_numberNodes*(it->size())];
 			double probWord = -std::numeric_limits<double>::infinity();
 
-//			for(int i=0; i< it->size(); i++){
-//				std::cout << it->operator [](i);
+//			for(int i=0; i<it->size(); i++){
+//				std::cout << it->at(i);
 //			}
 //			std::cout << std::endl;
 //
-//			std::cout << "Prob:" << this->forward(*it) << std::endl;
-//			std::cout << "Length:" << it->size() << std::endl;
-//
-//			if(this->forward(*it) == 0){
-//				std::cout << "Backward:" << this->backward(*it) << std::endl;
-//			}
-
-			for(int i=0; i<_numberNodes*(it->size()); i++){
-				forward[i] = -std::numeric_limits<double>::infinity();
-				backward[i] = -std::numeric_limits<double>::infinity();
-			}
+//			std::cout << this->forward(*it) << std::endl;
 
 			if(initialRun)
 				_supersetEmissions.insert(it->at(0));
@@ -569,8 +568,6 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 			for(int i=0; i< _numberNodes;i++){
 				forward[i] = getLogInitialDistribution(i)+getLogEmission(i,it->at(0));
 			}
-
-
 
 			for(int c =1; c < it->size(); c++){
 				if(initialRun)
@@ -596,8 +593,8 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 				}
 			}
 
-			for(int i = 0; i < _numberNodes; i++){
-				probWord = elnsum(probWord,forward[_numberNodes*(it->size()-1)+i]);
+			for(int i=0; i<_numberNodes; i++){
+				probWord = elnsum(probWord,forward[i+_numberNodes*(it->size()-1)]);
 			}
 
 			//calculate backward function
@@ -623,91 +620,55 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 				}
 			}
 
-			//calculate gamma function
-			for(int c = 0; c < it->size(); c++){
-				double normalizer = -std::numeric_limits<double>::infinity();
-				for(int i=0; i< _numberNodes;i++){
-					gamma[_numberNodes*c+i] = forward[_numberNodes*c+i]+backward[_numberNodes*c+i];
-					normalizer = elnsum(normalizer,forward[_numberNodes*c+i]+backward[_numberNodes*c+i]);
-				}
-
-				for(int i=0; i<_numberNodes;i++){
-					gamma[_numberNodes*c+i] -= normalizer;
-				}
-			}
-
-			//calculate xi function
-			for(int c= 0; c < it->size()-1; c++){
-				double normalizer = -std::numeric_limits<double>::infinity();
-				for(int i=0; i< _numberNodes;i++){
-					for(int j=0; j<_numberNodes;j++){
-						if(isSilent(j)){
-							xi[c*_numberNodes*_numberNodes+i*_numberNodes+j] = forward[c*_numberNodes+i] + getLogTransition(i,j)
-																+ backward[(c)*_numberNodes+j];
-						}else{
-							xi[c*_numberNodes*_numberNodes+i*_numberNodes+j] = forward[c*_numberNodes+i] + getLogTransition(i,j) + getLogEmission(j,it->at(c+1))
-									+ backward[(c+1)*_numberNodes+j];
-						}
-						normalizer = elnsum(normalizer,xi[c*_numberNodes*_numberNodes+i*_numberNodes+j] );
-					}
-				}
-
-				for(int i=0; i< _numberNodes;i++){
-					for(int j=0; j<_numberNodes;j++){
-						xi[c*_numberNodes*_numberNodes+i*_numberNodes+j] -= normalizer;
-					}
-				}
-			}
-
 			// calculate contributions
 			// transitions
 			for(int i =0; i<_numberNodes;i++){
 				for(int j = 0; j < _numberNodes; j++){
-					double denominator =-std::numeric_limits<double>::infinity();
 					double numerator = -std::numeric_limits<double>::infinity();
-					for(int t = 0; t < it->size(); t++){
-						numerator = elnsum(numerator,xi[t*_numberNodes*_numberNodes+i*_numberNodes+j]);
-						denominator = elnsum(denominator,gamma[t*_numberNodes+i]);
+					double temp =0;
+					for(int t = 0; t < it->size()-1; t++){
+						if(isSilent(j)){
+							numerator = elnsum(numerator,forward[t*_numberNodes+i]+backward[t*_numberNodes+j]);
+						}else{
+							numerator = elnsum(numerator,forward[t*_numberNodes+i]+backward[(t+1)*_numberNodes+j]+getLogEmission(j,it->at(t+1)));
+						}
 					}
 
-					cTransitions[i*_numberNodes + j] += std::exp(numerator-denominator);
+					cTransitions[i*_numberNodes + j] += std::exp(numerator+getLogTransition(i,j)-probWord);
+
 				}
 			}
+
 
 			// emissions
 			for(int i =0; i< _numberNodes; i++){
 				if(!isSilent(i)){
 					for(boost::unordered_set<std::string>::const_iterator jt = _supersetEmissions.begin(); jt != _supersetEmissions.end(); ++jt){
 						double numerator = -std::numeric_limits<double>::infinity();
-						double denominator = -std::numeric_limits<double>::infinity();
 
 						for(int t = 0; t < it->size(); t++){
 							if(it->at(t) == *jt){
-								numerator = elnsum(numerator,gamma[t*_numberNodes+i]);
+								numerator = elnsum(numerator,forward[t*_numberNodes+i]+backward[t*_numberNodes+i]);
 							}
-							denominator = elnsum(denominator,gamma[t*_numberNodes+i]);
 						}
 
 						if(cEmissions[i].count(*jt) ==0){
-							cEmissions[i][*jt] = std::exp(numerator-denominator);
+							cEmissions[i][*jt] = std::exp(numerator-probWord);
 						}else{
-							cEmissions[i][*jt] += std::exp(numerator-denominator);
+							cEmissions[i][*jt] += std::exp(numerator-probWord);
 						}
 					}
-
 
 				}
 			}
 
 			// initial distribution
 			for(int i =0; i<_numberNodes;i++){
-				cInitial[i] += std::exp(gamma[i]);
+				cInitial[i] += std::exp(forward[i]+backward[i]-probWord);
 			}
 
 			delete [] forward;
 			delete [] backward;
-			delete [] gamma;
-			delete [] xi;
 		}
 
 		// smoothing by pseudo counts
@@ -719,51 +680,42 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 
 		// new emission probabilities
 		for(int i =0; i<_numberNodes; i++){
-			double sum =0;
-			double constantRest = 0;
+			if(!hasConstantEmissions(i)){
+				double sum =0;
 
-			for(boost::unordered_map<std::string,EmissionInfo>::const_iterator it= _emissions[i].begin(); it != _emissions[i].end(); ++it){
-				if(it->second._constant)
-					constantRest += it->second._prob;
-			}
-
-			for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
-				sum += it->second;
-			}
-
-			for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
-				prob = it->second/sum;
-				double eProb = getEmission(i,it->first);
-				if(maxDiff < std::abs(eProb-prob)){
-					maxDiff = std::abs(eProb-prob);
+				for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
+					sum += it->second;
 				}
 
-				if(_emissions[i].count(it->first) ==0 && (1-constantRest)*prob >0){
-					_emissions[i][it->first]._prob = (1-constantRest)*prob;
-				}else if(_emissions[i].count(it->first) > 0 && !_emissions[i].at(it->first)._constant){
-					_emissions[i][it->first]._prob = (1-constantRest)*prob;
+				for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
+					prob = it->second/sum;
+					double eProb = getEmission(i,it->first);
+					if(maxDiffEmission < std::abs(eProb-prob)){
+						maxDiffEmission = std::abs(eProb-prob);
+					}
+
+					_emissions[i][it->first] = prob;
 				}
 			}
 		}
 
 		// new transition probabilities
 		for(int i=0; i<_numberNodes;i++){
-			double sum =0;
-			double constantRest = 0;
+			if(!hasConstantTransitions(i)){
+				double sum =0;
 
-			for(int j =0; j< _numberNodes;j++){
-				if(_constantTransitions[i*_numberNodes + j]){
-					constantRest += _transitions[i*_numberNodes +j];
-				}else{
+				for(int j =0; j< _numberNodes;j++){
 					sum += cTransitions[i*_numberNodes + j];
 				}
-			}
+				for(int j =0; j<_numberNodes; j++){
+					double prob =0;
 
-			for(int j =0; j<_numberNodes; j++){
-				if(!_constantTransitions[i*_numberNodes+j]){
-					prob = (1-constantRest)*cTransitions[i*_numberNodes+j]/sum;
-					if(maxDiff < std::abs(_transitions[i*_numberNodes+j]-prob)){
-						maxDiff = std::abs(_transitions[i*_numberNodes+j]-prob);
+					if(sum != 0){
+						prob = cTransitions[i*_numberNodes+j]/sum;
+					}
+
+					if(maxDiffTransition < std::abs(_transitions[i*_numberNodes+j]-prob)){
+						maxDiffTransition = std::abs(_transitions[i*_numberNodes+j]-prob);
 					}
 					_transitions[i*_numberNodes + j] = prob;
 				}
@@ -778,15 +730,33 @@ void HMMCompiled::baumWelch(const std::list<std::vector<std::string> >& training
 
 		for(int i=0; i< _numberNodes; i++){
 			prob = cInitial[i]/sum;
-			if(maxDiff < std::abs(_initialDistribution[i]-prob)){
-				maxDiff = std::abs(_initialDistribution[i]-prob);
+			if(maxDiffInitial < std::abs(_initialDistribution[i]-prob)){
+				maxDiffInitial = std::abs(_initialDistribution[i]-prob);
 			}
 			_initialDistribution[i] = prob;
 		}
 
 		initialRun = false;
 
-		std::cout << "MaxDiff:" << maxDiff << std::endl;
+		maxDiff = std::max(maxDiffInitial, std::max(maxDiffTransition, maxDiffEmission));
+
+		std::cout <<"MaxDiff:" << maxDiff << " Initial:" << maxDiffInitial
+				<< " Transition:" << maxDiffTransition << " Emission:" << maxDiffEmission<< std::endl;
+//
+//		std::stringstream ss;
+//		ss << "Emissions:" << std::endl;
+//
+//		for(int i=0; i < _numberNodes; i++){
+//			ss << i  << ":";
+//			for(boost::unordered_map<std::string,double>::const_iterator it = _emissions[i].begin();
+//					it != _emissions[i].end(); ++it){
+//				ss << it->first << "=" << it->second << " ";
+//			}
+//			ss << std::endl;
+//		}
+//
+//		std::cout << ss.str();
+
 	}while(maxDiff > threshold);
 
 	delete [] cTransitions;
@@ -843,21 +813,21 @@ void HMMCompiled::initProbabilities(){
 		sum =0;
 		constant = 0;
 
-		for(boost::unordered_map<std::string,EmissionInfo>::iterator it = _emissions[i].begin(); it!= _emissions[i].end(); ++it){
-			if(it->second._prob >= 0){
-				constant += it->second._prob;
+		for(boost::unordered_map<std::string,double>::iterator it = _emissions[i].begin(); it!= _emissions[i].end(); ++it){
+			if(it->second >= 0){
+				constant += it->second;
 			}else{
 				do{
-					it->second._prob = -_random();
-				}while(it->second._prob == 0);
+					it->second = -_random();
+				}while(it->second == 0);
 
-				sum += it->second._prob;
+				sum += it->second;
 			}
 		}
 
-		for(boost::unordered_map<std::string,EmissionInfo>::iterator it = _emissions[i].begin(); it!=_emissions[i].end(); ++it){
-			if(it->second._prob < 0){
-				it->second._prob *= (1-constant)/sum;
+		for(boost::unordered_map<std::string,double>::iterator it = _emissions[i].begin(); it!=_emissions[i].end(); ++it){
+			if(it->second < 0){
+				it->second *= (1-constant)/sum;
 			}
 		}
 	}
@@ -869,7 +839,7 @@ void HMMCompiled::simulate(int length, std::vector<std::string>& sequence, std::
 	states.push_back(state);
 
 	if(!isSilent(state)){
-		std::string emission = getEmission(_emissions[state]);
+		std::string emission = getRandomEmission(_emissions[state]);
 		sequence.push_back(emission);
 		counter++;
 	}
@@ -879,7 +849,7 @@ void HMMCompiled::simulate(int length, std::vector<std::string>& sequence, std::
 
 		states.push_back(state);
 		if(!isSilent(state)){
-			std::string emission = getEmission(_emissions[state]);
+			std::string emission = getRandomEmission(_emissions[state]);
 			sequence.push_back(emission);
 			counter++;
 		}
@@ -899,15 +869,15 @@ int HMMCompiled::getState(double* distribution){
 	return result;
 }
 
-std::string HMMCompiled::getEmission(boost::unordered_map<std::string,EmissionInfo>& emissions){
+std::string HMMCompiled::getRandomEmission(boost::unordered_map<std::string,double>& emissions){
 	double rvalue = _random();
 	double sum =0;
 
 
-	boost::unordered_map<std::string,EmissionInfo>::const_iterator it = emissions.begin();
+	boost::unordered_map<std::string,double>::const_iterator it = emissions.begin();
 
-	while(it != emissions.end() && sum+it->second._prob < rvalue){
-		sum += it->second._prob;
+	while(it != emissions.end() && sum+it->second < rvalue){
+		sum += it->second;
 		++it;
 	}
 
@@ -921,7 +891,7 @@ void HMMCompiled::copy(boost::shared_ptr<HMMCompiled> dst){
 	dst->_transitions = new double[_numberNodes*_numberNodes];
 	std::memcpy(dst->_transitions,_transitions,sizeof(double)*_numberNodes*_numberNodes);
 
-	dst->_emissions = new boost::unordered_map<std::string,EmissionInfo>[_numberNodes];
+	dst->_emissions = new boost::unordered_map<std::string,double>[_numberNodes];
 	for(int i =0; i< _numberNodes; i++){
 		dst->_emissions[i] = _emissions[i];
 	}
@@ -933,8 +903,11 @@ void HMMCompiled::copy(boost::shared_ptr<HMMCompiled> dst){
 	dst->_initialDistribution = new double[_numberNodes];
 	std::memcpy(dst->_initialDistribution,_initialDistribution,sizeof(double)*_numberNodes);
 
-	dst->_constantTransitions = new bool[_numberNodes*_numberNodes];
-	std::memcpy(dst->_constantTransitions,_constantTransitions,sizeof(bool)*_numberNodes*_numberNodes);
+	dst->_constantTransitionNodes = new bool[_numberNodes];
+	std::memcpy(dst->_constantTransitionNodes,_constantTransitionNodes,sizeof(bool)*_numberNodes);
+
+	dst->_constantEmissionNodes = new bool[_numberNodes];
+	std::memcpy(dst->_constantEmissionNodes,_constantEmissionNodes,sizeof(bool)*_numberNodes);
 
 	dst->_int2Node = _int2Node;
 	dst->_node2Int = _node2Int;
@@ -943,5 +916,308 @@ void HMMCompiled::copy(boost::shared_ptr<HMMCompiled> dst){
 
 	dst->_random.base().seed((unsigned int)(_random()*std::numeric_limits<unsigned int>::max())+time(NULL));
 }
+
+double HMMCompiled::forwardR(const std::vector<std::string>& sequence){
+        double* prev = new double[_numberNodes];
+        double* cur = new double[_numberNodes];
+        double *temp;
+        double result =0;
+
+        std::vector<std::string>::const_iterator it = sequence.begin();
+
+        for(int i=0; i< _numberNodes; i++){
+                cur[i] = _initialDistribution[i]*getEmission(i,*it);
+        }
+
+        ++it;
+
+        for(; it != sequence.end(); ++it){
+                temp = prev;
+                prev = cur;
+                cur = temp;
+
+                for(int i =0; i< _numberNodes;i++){
+                        cur[i] = 0;
+                        if(!isSilent(i)){
+                                for(int j =0; j< _numberNodes; j++){
+                                        cur[i] += prev[j]*getTransition(j,i)*getEmission(i,*it);
+                                }
+                        }
+                }
+
+                for(std::vector<int>::const_iterator order = _silentStateOrder.begin();
+                                order != _silentStateOrder.end(); ++order){
+                        int node = *order;
+                        for(int j =0; j< _numberNodes; j++){
+                                cur[node] += cur[j]*getTransition(j,node);
+                        }
+                }
+        }
+
+        for(int i =0; i< _numberNodes; i++){
+                result += cur[i];
+        }
+
+        delete [] prev;
+        delete [] cur;
+
+        return result;
+}
+
+double HMMCompiled::backwardR(const std::vector<std::string>& sequence){
+        double* prev = new double[_numberNodes];
+        double* cur = new double[_numberNodes];
+        double *temp;
+        double result = 0;
+
+        for(int i =0; i < _numberNodes; i++){
+                cur[i] = 1;
+        }
+
+        for(int k = sequence.size()-1; k>0; k--){
+                temp = prev;
+                prev = cur;
+                cur = temp;
+
+                for(int i =0; i<_numberNodes; i++){
+                        cur[i] = 0;
+                        if(!isSilent(i)){
+                                for(int j =0; j< _numberNodes; j++){
+                                        cur[i] += prev[j]*getEmission(j,sequence[k])*getTransition(i,j);
+                                }
+                        }
+                }
+
+                for(int i =_silentStateOrder.size()-1;i>=0;i--){
+                        int node = _silentStateOrder[i];
+                        for(int j=0; j< _numberNodes;j++){
+                                cur[node] += cur[j]*getTransition(node,j);
+                        }
+                }
+        }
+
+        temp = prev;
+        prev = cur;
+        cur = temp;
+
+        for(int i =0; i< _numberNodes;i++){
+                cur[i] = 0;
+                if(!isSilent(i)){
+                        cur[i]= getEmission(i,sequence[0])*prev[i];
+                }
+        }
+
+        for(int i= _silentStateOrder.size()-1; i>=0;i--){
+                int node = _silentStateOrder[i];
+                for(int j =0; j< _numberNodes; j++){
+                        cur[i] += getTransition(node,j)*cur[j];
+                }
+        }
+
+        for(int i =0; i< _numberNodes; i++){
+                result += cur[i]*_initialDistribution[i];
+        }
+
+        delete [] prev;
+        delete [] cur;
+
+        return result;
+}
+
+void HMMCompiled::baumWelchR(const std::list<std::vector<std::string> >& trainingset, double threshold){
+        double* cTransitions = new double[_numberNodes*_numberNodes];
+        boost::unordered_map<std::string,double>* cEmissions = new boost::unordered_map<std::string,double>[_numberNodes];
+        double* cInitial = new double[_numberNodes];
+        double maxDiff;
+        double prob;
+        bool initialRun = true;
+
+        do{
+                maxDiff = 0;
+                for(int i = 0; i<_numberNodes*_numberNodes; i++){
+                        cTransitions[i] = 0;
+                }
+
+                for(int i =0; i< _numberNodes;i++){
+                        cInitial[i] = 0;
+                }
+
+                cEmissions->clear();
+
+                for(std::list<std::vector<std::string> >::const_iterator it = trainingset.begin(); it != trainingset.end(); ++it){
+                        double * forward = new double[_numberNodes*(it->size())];
+                        double * backward = new double[_numberNodes*(it->size())];
+                        double probWord = 0;
+
+                        for(int i=0; i<_numberNodes*(it->size()); i++){
+                                forward[i] = 0;
+                                backward[i] = 0;
+                        }
+
+                        if(initialRun)
+                                _supersetEmissions.insert(it->at(0));
+
+                        //calculate forward function
+                        for(int i=0; i< _numberNodes;i++){
+                                forward[i] = _initialDistribution[i]*getEmission(i,it->at(0));
+                        }
+
+
+
+                        for(int c =1; c < it->size(); c++){
+                                if(initialRun)
+                                        _supersetEmissions.insert(it->at(c));
+
+                                for(int i=0; i< _numberNodes; i++){
+                                        forward[_numberNodes*c+i] = 0;
+                                        if(!isSilent(i)){
+                                                for(int j =0; j< _numberNodes;j++){
+                                                        forward[_numberNodes*c+i] += forward[_numberNodes*(c-1)+j]*getEmission(i,it->at(c))*getTransition(j,i);
+                                                }
+                                        }
+                                }
+
+                                for(int i =0; i< _silentStateOrder.size(); i++){
+                                        int node = _silentStateOrder[i];
+
+                                        for(int j =0; j< _numberNodes; j++){
+                                                forward[_numberNodes*c+node] += forward[_numberNodes*c+j]*getTransition(j,node);
+                                        }
+                                }
+                        }
+
+                        for(int i = 0; i < _numberNodes; i++){
+                                probWord += forward[_numberNodes*(it->size()-1)+i];
+                        }
+
+                        //calculate backward function
+                        for(int i=0; i<_numberNodes;i++){
+                                backward[i+_numberNodes*(it->size()-1)] = 1;
+                        }
+
+                        for(int c = it->size()-2; c>=0; c--){
+                                for(int i =0; i< _numberNodes; i++){
+                                        backward[i+_numberNodes*c] = 0;
+                                        if(!isSilent(i)){
+                                                for(int j =0; j< _numberNodes; j++){
+                                                        backward[i+_numberNodes*c] += backward[j+_numberNodes*(c+1)]*getTransition(i,j)*getEmission(j,it->at(c+1));
+                                                }
+                                        }
+                                }
+
+                                for(int i = _silentStateOrder.size()-1; i>=0; i--){
+                                        int node = _silentStateOrder[i];
+                                        for(int j =0; j< _numberNodes; j++){
+                                                backward[node+_numberNodes*c] += backward[j+_numberNodes*c]*getTransition(node,j);
+                                        }
+                                }
+                        }
+
+                        // calculate contributions
+                        // transitions
+                        for(int i =0; i<_numberNodes;i++){
+                                for(int j = 0; j < _numberNodes; j++){
+                                        double temp =0;
+                                        if(isSilent(j)){
+                                                for(int t = 0; t < it->size(); t++){
+                                                        temp += forward[t*_numberNodes +i]*backward[t*_numberNodes + j];
+                                                }
+                                        }else{
+                                                for(int t = 0; t < it->size()-1; t++){
+                                                        temp += forward[t*_numberNodes + i]*backward[(t+1)*_numberNodes + j]*getEmission(j,it->at(t+1));
+                                                }
+                                        }
+
+                                        cTransitions[i*_numberNodes + j] += getTransition(i,j)*temp/probWord;
+                                }
+                        }
+
+                        // emissions
+                        for(int i =0; i< _numberNodes; i++){
+                                if(!isSilent(i)){
+                                        for(int t = 0; t < it->size(); t++){
+                                                cEmissions[i][it->at(t)] += forward[t*_numberNodes+i]*backward[t*_numberNodes+i]/probWord;
+                                        }
+                                }
+                        }
+
+                        // initial distribution
+                        for(int i =0; i<_numberNodes;i++){
+                                cInitial[i] += forward[i]*backward[i]/probWord;
+                        }
+
+                        delete [] forward;
+                        delete [] backward;
+                }
+
+                // smoothing by pseudo counts
+                for(int i =0; i< _numberNodes; i++){
+                        for(boost::unordered_set<std::string>::const_iterator it = _supersetEmissions.begin(); it != _supersetEmissions.end();++it){
+                                cEmissions[i][*it] += 1;
+                        }
+                }
+
+                // new emission probabilities
+                for(int i =0; i<_numberNodes; i++){
+                	if(!hasConstantEmissions(i)){
+                        double sum =0;
+
+                        for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
+							sum += it->second;
+                        }
+
+                        for(boost::unordered_map<std::string,double>::const_iterator it = cEmissions[i].begin(); it != cEmissions[i].end(); ++it){
+							prob = it->second/sum;
+							double eProb = getEmission(i,it->first);
+							if(maxDiff < std::abs(eProb-prob)){
+									maxDiff = std::abs(eProb-prob);
+							}
+
+							_emissions[i][it->first] = prob;
+                        }
+                	}
+                }
+
+                // new transition probabilities
+                for(int i=0; i<_numberNodes;i++){
+                	if(!hasConstantTransitions(i)){
+                        double sum =0;
+
+                        for(int j =0; j< _numberNodes;j++){
+                        	sum += cTransitions[i*_numberNodes + j];
+                        }
+
+                        for(int j =0; j<_numberNodes; j++){
+                        	prob = cTransitions[i*_numberNodes+j]/sum;
+							if(maxDiff < std::abs(_transitions[i*_numberNodes+j]-prob)){
+									maxDiff = std::abs(_transitions[i*_numberNodes+j]-prob);
+							}
+							_transitions[i*_numberNodes + j] = prob;
+                        }
+                	}
+                }
+
+                // new initial distribution
+                double sum = 0;
+                for(int i =0; i < _numberNodes; i++){
+                        sum += cInitial[i];
+                }
+
+                for(int i=0; i< _numberNodes; i++){
+                        prob = cInitial[i]/sum;
+                        if(maxDiff < std::abs(_initialDistribution[i]-prob)){
+                                maxDiff = std::abs(_initialDistribution[i]-prob);
+                        }
+                        _initialDistribution[i] = prob;
+                }
+
+                initialRun = false;
+        }while(maxDiff > threshold);
+
+        delete [] cTransitions;
+        delete [] cEmissions;
+        delete [] cInitial;
+}
+
 
 

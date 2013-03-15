@@ -32,80 +32,92 @@ boost::shared_ptr<HMM> Models::createExonModel(){
 	int stopCodonG2 = result->createNode("ExonStopCodonG2");
 
 	for(int i=0; i<4; i++){
-		result->addEmission(absorbing1,HMMEmission(-1,endings[i]));
-		result->addEmission(absorbing2,HMMEmission(-1,endings[i]));
-		result->addEmission(absorbing3,HMMEmission(-1,endings[i]));
-		result->addEmission(absorbing4,HMMEmission(-1,endings[i]));
+		result->addEmission(absorbing1,HMMEmission(endings[i],-1));
+		result->addEmission(absorbing2,HMMEmission(endings[i],-1));
+		result->addEmission(absorbing3,HMMEmission(endings[i],-1));
+		result->addEmission(absorbing4,HMMEmission(endings[i],-1));
 	}
 
-	result->addEmission(stopCodonA1,HMMEmission(1,"A",true));
-	result->addEmission(stopCodonA2,HMMEmission(1,"A",true));
-	result->addEmission(stopCodonG1,HMMEmission(1,"G",true));
-	result->addEmission(stopCodonG2,HMMEmission(1,"G",true));
+	result->addEmission(stopCodonA1,HMMEmission("A",1));
+	result->setConstantEmissions(stopCodonA1,true);
+	result->addEmission(stopCodonA2,HMMEmission("A",1));
+	result->setConstantEmissions(stopCodonA2,true);
+	result->addEmission(stopCodonG1,HMMEmission("G",1));
+	result->setConstantEmissions(stopCodonG1,true);
+	result->addEmission(stopCodonG2,HMMEmission("G",1));
+	result->setConstantEmissions(stopCodonG2,true);
 
 	for(int i=0; i<4;i++){
 		ss1.clear();
+		ss1.str(std::string());
 		ss2.clear();
+		ss2.str(std::string());
 		ss3.clear();
+		ss3.str(std::string());
+
 		ss1 << "Exon" << endings[i] << "1";
 		ss2 << "Exon" << endings[i] << "2";
 		ss3 << "Exon" << endings[i] << "3";
 
 		startNodes[i] = result->createNode(ss1.str());
-		result->addEmission(startNodes[i],HMMEmission(1,endings[i],true));
+		result->addEmission(startNodes[i],HMMEmission(endings[i],1));
+		result->setConstantEmissions(startNodes[i],true);
 
 		intermediateNodes[i] = result->createNode(ss2.str());
-		result->addEmission(intermediateNodes[i],HMMEmission(1,endings[i],true));
+		result->addEmission(intermediateNodes[i],HMMEmission(endings[i],1));
+		result->setConstantEmissions(intermediateNodes[i],true);
 
 		endNodes[i] = result->createNode(ss3.str());
-		result->addEmission(endNodes[i],HMMEmission(1,endings[i],true));
+		result->addEmission(endNodes[i],HMMEmission(endings[i],1));
+		result->setConstantEmissions(endNodes[i],true);
 	}
 
-	result->addTransition(absorbing1,HMMTransition(1,absorbing2,true));
+	result->addTransition(absorbing1,HMMTransition(absorbing2,1));
+	result->setConstantTransitions(absorbing1,true);
 
 	for(int i=0; i<4;i++){
-		result->addTransition(absorbing2,HMMTransition(-1,startNodes[i]));
+		result->addTransition(absorbing2,HMMTransition(startNodes[i],-1));
 	}
 
 	for(int i=0; i<4;i++){
 		if(i <3){
 			for(int j=0; j<4; j++){
-				result->addTransition(startNodes[i],HMMTransition(-1,intermediateNodes[j]));
+				result->addTransition(startNodes[i],HMMTransition(intermediateNodes[j],-1));
 			}
 		}else{
-			result->addTransition(startNodes[3],HMMTransition(-1,intermediateNodes[1]));
-			result->addTransition(startNodes[3],HMMTransition(-1,intermediateNodes[3]));
-			result->addTransition(startNodes[3],HMMTransition(-1,stopCodonA1));
-			result->addTransition(startNodes[3],HMMTransition(-1,stopCodonG1));
+			result->addTransition(startNodes[3],HMMTransition(intermediateNodes[1],-1));
+			result->addTransition(startNodes[3],HMMTransition(intermediateNodes[3],-1));
+			result->addTransition(startNodes[3],HMMTransition(stopCodonA1,-1));
+			result->addTransition(startNodes[3],HMMTransition(stopCodonG1,-1));
 		}
 	}
 
 	for(int i=0; i<4;i++){
 		for(int j=0; j<4; j++){
-			result->addTransition(intermediateNodes[i],HMMTransition(-1,endNodes[j]));
+			result->addTransition(intermediateNodes[i],HMMTransition(endNodes[j],-1));
 		}
 	}
 
-	result->addTransition(stopCodonA1,HMMTransition(-1,stopCodonA2));
-	result->addTransition(stopCodonA1,HMMTransition(-1,stopCodonG2));
-	result->addTransition(stopCodonA1,HMMTransition(-1,endNodes[1]));
-	result->addTransition(stopCodonA1,HMMTransition(-1,endNodes[3]));
+	result->addTransition(stopCodonA1,HMMTransition(stopCodonA2,-1));
+	result->addTransition(stopCodonA1,HMMTransition(stopCodonG2,-1));
+	result->addTransition(stopCodonA1,HMMTransition(endNodes[1],-1));
+	result->addTransition(stopCodonA1,HMMTransition(endNodes[3],-1));
 
-	result->addTransition(stopCodonG1,HMMTransition(-1,stopCodonA2));
+	result->addTransition(stopCodonG1,HMMTransition(stopCodonA2,-1));
 
 	for(int i=1;i<4;i++){
-		result->addTransition(stopCodonG1,HMMTransition(-1,endNodes[i]));
+		result->addTransition(stopCodonG1,HMMTransition(endNodes[i],-1));
 	}
 
 	for(int i=0; i<4;i++){
 		for(int j =0; j< 4;j++){
-			result->addTransition(endNodes[i],HMMTransition(-1,startNodes[j]));
+			result->addTransition(endNodes[i],HMMTransition(startNodes[j],-1));
 		}
 
-		result->addTransition(endNodes[i],HMMTransition(-1,absorbing3));
+		result->addTransition(endNodes[i],HMMTransition(absorbing3,-1));
 	}
 
-	result->addTransition(absorbing3,HMMTransition(-1,absorbing4));
+	result->addTransition(absorbing3,HMMTransition(absorbing4,-1));
 
 	result->addStartNode(absorbing1,-1);
 	result->addStartNode(absorbing2,-1);
@@ -138,10 +150,10 @@ boost::shared_ptr<HMM> Models::createIntronModel(){
 	int nodes[3][4];
 
 	for(int i=0; i<4;i++){
-		result->addEmission(absorbing1,HMMEmission(-1,endings[i]));
-		result->addEmission(absorbing2,HMMEmission(-1,endings[i]));
-		result->addEmission(absorbing3,HMMEmission(-1,endings[i]));
-		result->addEmission(absorbing4,HMMEmission(-1,endings[i]));
+		result->addEmission(absorbing1,HMMEmission(endings[i],-1));
+		result->addEmission(absorbing2,HMMEmission(endings[i],-1));
+		result->addEmission(absorbing3,HMMEmission(endings[i],-1));
+		result->addEmission(absorbing4,HMMEmission(endings[i],-1));
 	}
 
 	for(int i=0; i< 3;i++){
@@ -150,29 +162,31 @@ boost::shared_ptr<HMM> Models::createIntronModel(){
 			ss.str(std::string());
 			ss << "Intron" << endings[j] << i+1;
 			nodes[i][j] = result->createNode(ss.str());
-			result->addEmission(nodes[i][j],HMMEmission(1,endings[j],true));
+			result->addEmission(nodes[i][j],HMMEmission(endings[j],1));
+			result->setConstantEmissions(nodes[i][j],true);
 		}
 	}
 
-	result->addTransition(absorbing1,HMMTransition(1,absorbing2,true));
+	result->addTransition(absorbing1,HMMTransition(absorbing2,1));
+	result->setConstantTransitions(absorbing1,true);
 
 	for(int i=0; i < 4;i++){
-		result->addTransition(absorbing2,HMMTransition(-1,nodes[0][i]));
+		result->addTransition(absorbing2,HMMTransition(nodes[0][i],-1));
 	}
 
 	for(int i =0;i<3;i++){
 		for(int j=0; j<4; j++){
 			for(int k=0;k<4;k++){
-				result->addTransition(nodes[i][j],HMMTransition(-1,nodes[(i+1)%3][k]));
+				result->addTransition(nodes[i][j],HMMTransition(nodes[(i+1)%3][k],-1));
 			}
 		}
 	}
 
 	for(int i=0;i<4;i++){
-		result->addTransition(nodes[2][i],HMMTransition(-1,absorbing3));
+		result->addTransition(nodes[2][i],HMMTransition(absorbing3,-1));
 	}
 
-	result->addTransition(absorbing3,HMMTransition(-1,absorbing4));
+	result->addTransition(absorbing3,HMMTransition(absorbing4,-1));
 
 	result->addStartNode(absorbing1,-1);
 	result->addStartNode(absorbing2,-1);
@@ -198,12 +212,17 @@ boost::shared_ptr<HMM> Models::createStartCodon(){
 	int n2 = result->createNode("StartCodon2");
 	int n3 = result->createNode("StartCodon3");
 
-	result->addTransition(n1,HMMTransition(1,n2,true));
-	result->addTransition(n2,HMMTransition(1,n3,true));
+	result->addTransition(n1,HMMTransition(n2,1));
+	result->setConstantTransitions(n1,true);
+	result->addTransition(n2,HMMTransition(n3,1));
+	result->setConstantTransitions(n2,true);
 
-	result->addEmission(n1,HMMEmission(1,"A",true));
-	result->addEmission(n2,HMMEmission(1,"T",true));
-	result->addEmission(n3,HMMEmission(1,"G",true));
+	result->addEmission(n1,HMMEmission("A",1));
+	result->setConstantEmissions(n1,true);
+	result->addEmission(n2,HMMEmission("T",1));
+	result->setConstantEmissions(n2,true);
+	result->addEmission(n3,HMMEmission("G",1));
+	result->setConstantEmissions(n3,true);
 
 	result->addStartNode(n1,1);
 	result->addEndNode(n3);
@@ -226,12 +245,13 @@ boost::shared_ptr<HMM> Models::create3SpliceSite(){
 		stages[i] = result->createNode(ss.str());
 
 		for(int j =0; j< 4; j++){
-			result->addEmission(stages[i],HMMEmission(-1,emissions[j]));
+			result->addEmission(stages[i],HMMEmission(emissions[j],-1));
 		}
 	}
 
 	for(int i=0;i<14;i++){
-		result->addTransition(stages[i],HMMTransition(1,stages[i+1],true));
+		result->addTransition(stages[i],HMMTransition(stages[i+1],1));
+		result->setConstantTransitions(stages[i],true);
 	}
 
 	result->addStartNode(stages[0],1);
@@ -251,11 +271,13 @@ boost::shared_ptr<HMM> Models::create5PolyASite(){
 		ss.str(std::string());
 		ss << "PolyASite" << i+1;
 		stages[i] = result->createNode(ss.str());
-		result->addEmission(stages[i],HMMEmission(1,emissions[i],true));
+		result->addEmission(stages[i],HMMEmission(emissions[i],1));
+		result->setConstantEmissions(stages[i],true);
 	}
 
 	for(int i=0; i<5; i++){
-		result->addTransition(stages[i],HMMTransition(1,stages[i+1],true));
+		result->addTransition(stages[i],HMMTransition(stages[i+1],1));
+		result->setConstantTransitions(stages[i],true);
 	}
 
 	result->addStartNode(stages[0],1);
@@ -278,12 +300,13 @@ boost::shared_ptr<HMM> Models::create5SpliceSite(){
 		stages[i] = result->createNode(ss.str());
 
 		for(int j=0;j<4;j++){
-			result->addEmission(stages[i],HMMEmission(-1,emissions[j]));
+			result->addEmission(stages[i],HMMEmission(emissions[j],-1));
 		}
 	}
 
 	for(int i=0;i<8;i++){
-		result->addTransition(stages[i],HMMTransition(1,stages[i+1],true));
+		result->addTransition(stages[i],HMMTransition(stages[i+1],1));
+		result->setConstantTransitions(stages[i],true);
 	}
 
 	result->addStartNode(stages[0],1);
@@ -306,12 +329,13 @@ boost::shared_ptr<HMM> Models::createDownstreamModel(){
 		stages[i] = result->createNode(ss.str());
 
 		for(int j=0; j< 4; j++){
-			result->addEmission(stages[i],HMMEmission(-1,emissions[j]));
+			result->addEmission(stages[i],HMMEmission(emissions[j],-1));
 		}
 	}
 
 	for(int i =0; i<9;i++){
-		result->addTransition(stages[i],HMMTransition(1,stages[i+1],true));
+		result->addTransition(stages[i],HMMTransition(stages[i+1],1));
+		result->setConstantTransitions(stages[i],true);
 	}
 
 	result->addTransition(stages[9],HMMTransition(1,stages[9]));
@@ -338,15 +362,16 @@ boost::shared_ptr<HMM> Models::createUpstreamModel(){
 		stages[i] = result->createNode(ss.str());
 
 		for(int j =0; j<4;j++){
-			result->addEmission(stages[i],HMMEmission(-1,emissions[j]));
+			result->addEmission(stages[i],HMMEmission(emissions[j],-1));
 		}
 	}
 
 	for(int i=0; i<14;i++){
-		result->addTransition(stages[i],HMMTransition(1,stages[i+1],true));
+		result->addTransition(stages[i],HMMTransition(stages[i+1],1));
+		result->setConstantTransitions(stages[i],true);
 	}
 
-	result->addTransition(stages[14],HMMTransition(-1,stages[14]));
+	result->addTransition(stages[14],HMMTransition(stages[14],-1));
 
 	result->addStartNode(stages[0],1);
 	result->addEndNode(stages[14]);
@@ -354,7 +379,7 @@ boost::shared_ptr<HMM> Models::createUpstreamModel(){
 	return result;
 }
 
-boost::shared_ptr<HMM> buildGeneModel(boost::shared_ptr<HMM> upstreamModel, boost::shared_ptr<HMM> startCodon,
+boost::shared_ptr<HMM> Models::buildGeneModel(boost::shared_ptr<HMM> upstreamModel, boost::shared_ptr<HMM> startCodon,
 			boost::shared_ptr<HMM> exonModel, boost::shared_ptr<HMM> donor, boost::shared_ptr<HMM> intronModel,
 			boost::shared_ptr<HMM> acceptor, boost::shared_ptr<HMM> downstreamModel, boost::shared_ptr<HMM> polyASite){
 	boost::shared_ptr<HMM> result(new HMM());
@@ -368,56 +393,60 @@ boost::shared_ptr<HMM> buildGeneModel(boost::shared_ptr<HMM> upstreamModel, boos
 
 	result->integrateHMM(upstreamModel,boost::unordered_map<std::string,HMMConnection>());
 
-	upstream2startcodon.emplace("Upstream15",HMMConnection(-1,"StartCodon1"));
+	upstream2startcodon.emplace("Upstream15",HMMConnection("StartCodon1"));
 	result->integrateHMM(startCodon,upstream2startcodon);
 
 	result->integrateHMM(exonModel,boost::unordered_map<std::string,HMMConnection>());
 	result->integrateHMM(donor,boost::unordered_map<std::string,HMMConnection>());
 
-	donor2intron.emplace("Donor9",HMMConnection(-1,"IntronAbsorbing1"));
-	donor2intron.emplace("Donor9",HMMConnection(-1,"IntronAbsorbing2"));
-	donor2intron.emplace("Donor9",HMMConnection(-1,"IntronA1"));
-	donor2intron.emplace("Donor9",HMMConnection(-1,"IntronC1"));
-	donor2intron.emplace("Donor9",HMMConnection(-1,"IntronG1"));
-	donor2intron.emplace("Donor9",HMMConnection(-1,"IntronT1"));
+	donor2intron.emplace("Donor9",HMMConnection("IntronAbsorbing1"));
+	donor2intron.emplace("Donor9",HMMConnection("IntronAbsorbing2"));
+	donor2intron.emplace("Donor9",HMMConnection("IntronA1"));
+	donor2intron.emplace("Donor9",HMMConnection("IntronC1"));
+	donor2intron.emplace("Donor9",HMMConnection("IntronG1"));
+	donor2intron.emplace("Donor9",HMMConnection("IntronT1"));
 	result->integrateHMM(intronModel,donor2intron);
 
-	intron2acceptor.emplace("IntronAbsorbing3",HMMConnection(-1,"Acceptor1"));
-	intron2acceptor.emplace("IntronAbsorbing4",HMMConnection(-1,"Acceptor1"));
-	intron2acceptor.emplace("IntronA3",HMMConnection(-1,"Acceptor1"));
-	intron2acceptor.emplace("IntronC3",HMMConnection(-1,"Acceptor1"));
-	intron2acceptor.emplace("IntronG3",HMMConnection(-1,"Acceptor1"));
-	intron2acceptor.emplace("IntronT3",HMMConnection(-1,"Acceptor1"));
+	intron2acceptor.emplace("IntronAbsorbing3",HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronAbsorbing4",HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronA3",HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronC3",HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronG3",HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronT3",HMMConnection("Acceptor1"));
 	result->integrateHMM(acceptor,intron2acceptor);
 
 	result->integrateHMM(downstreamModel,boost::unordered_map<std::string,HMMConnection>());
 
-	downstream2polyAsite.emplace("Downstream10",HMMConnection(-1,"PolyASite1"));
-	downstream2polyAsite.emplace("PolyASite6",HMMConnection(-1,"Downstream10"));
+	downstream2polyAsite.emplace("Downstream10",HMMConnection("PolyASite1"));
+	downstream2polyAsite.emplace("PolyASite6",HMMConnection("Downstream10"));
 	result->integrateHMM(polyASite,downstream2polyAsite);
 
-	exonIn.emplace("Acceptor15",HMMConnection(-1,"ExonAbsorbing1"));
-	exonIn.emplace("Acceptor15",HMMConnection(-1,"ExonAbsorbing2"));
-	exonIn.emplace("Acceptor15",HMMConnection(-1,"ExonA1"));
-	exonIn.emplace("Acceptor15",HMMConnection(-1,"ExonC1"));
-	exonIn.emplace("Acceptor15",HMMConnection(-1,"ExonG1"));
-	exonIn.emplace("Acceptor15",HMMConnection(-1,"ExonT1"));
-	exonIn.emplace("StartCodon3",HMMConnection(-1,"ExonA1"));
-	exonIn.emplace("StartCodon3",HMMConnection(-1,"ExonC1"));
-	exonIn.emplace("StartCodon3",HMMConnection(-1,"ExonG1"));
-	exonIn.emplace("StartCodon3",HMMConnection(-1,"ExonT1"));
+	exonIn.emplace("Acceptor15",HMMConnection("ExonAbsorbing1"));
+	exonIn.emplace("Acceptor15",HMMConnection("ExonAbsorbing2"));
+	exonIn.emplace("Acceptor15",HMMConnection("ExonA1"));
+	exonIn.emplace("Acceptor15",HMMConnection("ExonC1"));
+	exonIn.emplace("Acceptor15",HMMConnection("ExonG1"));
+	exonIn.emplace("Acceptor15",HMMConnection("ExonT1"));
+	exonIn.emplace("StartCodon3",HMMConnection("ExonA1"));
+	exonIn.emplace("StartCodon3",HMMConnection("ExonC1"));
+	exonIn.emplace("StartCodon3",HMMConnection("ExonG1"));
+	exonIn.emplace("StartCodon3",HMMConnection("ExonT1"));
 	result->integrateHMM(boost::shared_ptr<HMM>(new HMM()),exonIn);
 
-	exonOut.emplace("ExonAbsorbing3",HMMConnection(-1,"Donor1"));
-	exonOut.emplace("ExonAbsorbing4",HMMConnection(-1,"Donor1"));
-	exonOut.emplace("ExonA3",HMMConnection(-1,"Donor1"));
-	exonOut.emplace("ExonC3",HMMConnection(-1,"Donor1"));
-	exonOut.emplace("ExonG3",HMMConnection(-1,"Donor1"));
-	exonOut.emplace("ExonT3",HMMConnection(-1,"Donor1"));
+	exonOut.emplace("ExonAbsorbing3",HMMConnection("Donor1"));
+	exonOut.emplace("ExonAbsorbing4",HMMConnection("Donor1"));
+	exonOut.emplace("ExonA3",HMMConnection("Donor1"));
+	exonOut.emplace("ExonC3",HMMConnection("Donor1"));
+	exonOut.emplace("ExonG3",HMMConnection("Donor1"));
+	exonOut.emplace("ExonT3",HMMConnection("Donor1"));
 
-	exonOut.emplace("ExonStopCodonA2",HMMConnection(-1,"Downstream1"));
-	exonOut.emplace("ExonStopCodonG2",HMMConnection(-1,"Downstream1"));
+	exonOut.emplace("ExonStopCodonA2",HMMConnection("Downstream1"));
+	exonOut.emplace("ExonStopCodonG2",HMMConnection("Downstream1"));
 	result->integrateHMM(boost::shared_ptr<HMM>(new HMM()),exonOut);
+
+	result->addStartNode("Upstream1",1.0);
+	result->addEndNode("Downstream10");
+	result->addEndNode("PolyASite6");
 
 	return result;
 }

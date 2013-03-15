@@ -12,15 +12,14 @@
 #include <ostream>
 #include <istream>
 
-HMMEmission::HMMEmission(double probability,const std::string& emissionToken, bool constant):
-	_probabiltiy(probability), _emissionToken(emissionToken), _constant(constant){
+HMMEmission::HMMEmission(const std::string& emissionToken,double probability):
+	_probabiltiy(probability), _emissionToken(emissionToken){
 }
 
 void HMMEmission::serialize(std::ostream& os) const{
 	os << "Emission{" << std::endl;
 	os << "Probability:" << _probabiltiy << std::endl;
 	os << "Token:" << _emissionToken << std::endl;
-	os << "Constant:" << _constant << std::endl;
 	os << "}" << std::endl;
 }
 
@@ -50,17 +49,8 @@ HMMEmission HMMEmission::deserialize(std::istream& is){
 	}
 
 	std::getline(is,line);
-	if(boost::regex_match(line,sm,boost::regex("Constant:(.*)"))){
-		ss.str(sm[1]);
-		ss >> constant;
-		ss.clear();
-	}else{
-		throw std::invalid_argument("HMMEmission: Constant cannot be deserialized.");
-	}
 
-	std::getline(is,line);
-
-	return HMMEmission(probability,emissionToken,constant);
+	return HMMEmission(emissionToken,probability);
 }
 
 

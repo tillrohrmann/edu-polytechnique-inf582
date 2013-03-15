@@ -13,10 +13,9 @@
 class HMMConnection{
 public:
 	double _probability;
-	bool _constant;
 	std::string _destination;
 
-	HMMConnection(double probability=-1.0, const std::string& destination = "", bool constant=false);
+	HMMConnection(const std::string& destination = "", double probability = -1.0);
 };
 
 

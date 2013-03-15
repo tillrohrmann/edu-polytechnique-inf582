@@ -14,9 +14,8 @@ class HMMEmission{
 public:
 	double _probabiltiy;
 	std::string _emissionToken;
-	bool _constant;
 
-	HMMEmission(double probability = -1.0,const std::string& emissionToken = "", bool constant = false);
+	HMMEmission(const std::string& emissionToken = "", double probability = -1.0);
 
 	void serialize(std::ostream& os) const;
 

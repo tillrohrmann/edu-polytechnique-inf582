@@ -10,11 +10,14 @@
 
 #include <string>
 #include <vector>
+#include <boost/random.hpp>
 
 #include "Pair.hpp"
 
 class DatabaseEntry{
 private:
+	static boost::random::uniform_01<boost::random::mt19937> _random;
+
 	std::string _id;
 	std::vector<std::string> _data;
 	std::vector<Pair<int> > _exons;
@@ -35,6 +38,8 @@ public:
 	void extractAnnotatedSequence(std::vector<std::vector<std::string> >& result) const;
 
 	void getAnnotation(std::vector<std::string>& annotation) const;
+
+	void instantiateData();
 };
 
 

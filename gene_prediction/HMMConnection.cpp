@@ -8,8 +8,8 @@
 #include "HMMConnection.hpp"
 
 
-HMMConnection::HMMConnection(double probability, const std::string& destination, bool constant):
-_probability(probability),_destination(destination), _constant(constant){
+HMMConnection::HMMConnection(const std::string& destination, double probability):
+_probability(probability),_destination(destination){
 }
 
 

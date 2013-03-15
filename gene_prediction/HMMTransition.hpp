@@ -14,10 +14,9 @@
 class HMMTransition{
 public:
 	double _probability;
-	bool _constant;
 	int _destination;
 
-	HMMTransition(double probability=-1.0, int destination = -1, bool constant=false);
+	HMMTransition( int destination = -1, double probability=-1.0);
 
 	void serialize(std::ostream& os) const;
 

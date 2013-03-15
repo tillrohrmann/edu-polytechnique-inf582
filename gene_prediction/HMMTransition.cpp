@@ -10,15 +10,14 @@
 #include <sstream>
 #include "Exceptions.hpp"
 
-HMMTransition::HMMTransition(double probability,int destination, bool constant):
-	_probability(probability), _constant(constant), _destination(destination){
+HMMTransition::HMMTransition(int destination, double probability):
+	_probability(probability), _destination(destination){
 }
 
 void HMMTransition::serialize(std::ostream& os) const{
 	os << "Transition{" << std::endl;
 	os << "Probability:" << _probability << std::endl;
 	os << "Destination:" << _destination << std::endl;
-	os << "Constant:" << _constant << std::endl;
 	os << "}" << std::endl;
 }
 
@@ -54,17 +53,7 @@ HMMTransition HMMTransition::deserialize(std::istream& is){
 
 	std::getline(is,line);
 
-	if(boost::regex_match(line,sm,boost::regex("Constant:(.*)"))){
-		ss.str(sm[1]);
-		ss >> constant;
-		ss.clear();
-	}else{
-		throw std::invalid_argument("HMMTransition: Constant cannot be deserialized.");
-	}
-
-	std::getline(is,line);
-
-	return HMMTransition(probability,destination,constant);
+	return HMMTransition(destination,probability);
 }
 
 
