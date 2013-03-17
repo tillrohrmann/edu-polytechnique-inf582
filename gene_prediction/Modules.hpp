@@ -8,9 +8,15 @@
 #ifndef MODULES_HPP_
 #define MODULES_HPP_
 
+#include <string>
+
 namespace Modules{
 	void learnCompleteModel();
 	void learnExonModel();
+
+	void evaluateModel(const std::string & hmmFilename);
+
+	void learnAndEvaluateModel();
 
 	void test2StateToyExample();
 	void test3StateToyExample();

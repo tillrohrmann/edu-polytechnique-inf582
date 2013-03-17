@@ -13,11 +13,16 @@
 #include <vector>
 
 class HMMCompiled;
+class DatabaseEntry;
+class HMM;
 
 class CrossValidation{
 public:
 	static boost::shared_ptr<HMMCompiled> crossValidation(boost::shared_ptr<HMMCompiled> compiled,const std::vector<std::vector<std::string> >& trainingSet,double threshold,int tries, int testingSize);
 	static boost::shared_ptr<HMMCompiled> crossValidationR(boost::shared_ptr<HMMCompiled> compiled,const std::vector<std::vector<std::string> >& trainingSet,double threshold,int tries, int testingSize);
+
+	static void modelLearning(boost::shared_ptr<HMM> hmm, const std::vector<DatabaseEntry*>& entries,
+			int testsetSize, int tries, const std::string& errorEvaluation, double threshold);
 };
 
 

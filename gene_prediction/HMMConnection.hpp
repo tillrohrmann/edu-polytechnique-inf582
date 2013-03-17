@@ -10,8 +10,7 @@
 
 #include <string>
 
-class HMMConnection{
-public:
+struct HMMConnection{
 	double _probability;
 	std::string _destination;
 

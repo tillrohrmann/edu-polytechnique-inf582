@@ -38,6 +38,7 @@ public:
 	void extractAnnotatedSequence(std::vector<std::vector<std::string> >& result) const;
 
 	void getAnnotation(std::vector<std::string>& annotation) const;
+	void extractAnnotation(std::vector<std::vector<std::string> >& result) const;
 
 	void instantiateData();
 };

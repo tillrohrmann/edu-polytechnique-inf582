@@ -42,7 +42,8 @@ public:
 
 	bool hasNode(int id);
 
-	int createNode(std::string name ="",bool constantTransitions=false, bool constantEmissions=false);
+	int createNode(std::string name ="",bool constantTransitions=false, bool constantEmissions=false,
+			bool constantEmissionSet = false);
 
 	void removeNode(int id);
 
@@ -54,6 +55,7 @@ public:
 
 	void setConstantTransitions(int src, bool constant);
 	void setConstantEmissions(int src, bool constant);
+	void setConstantEmissionSet(int src, bool constant=true);
 
 	void addStartNode(int nodeID,double probability);
 	void addStartNode(const std::string& nodeName, double probability);
@@ -71,7 +73,7 @@ public:
 
 	void initializeRandom(int numberStates, boost::unordered_set<std::string>& emissions);
 
-	void integrateHMM(boost::shared_ptr<HMM> hmm, const boost::unordered_map<std::string,HMMConnection>& connections);
+	void integrateHMM(boost::shared_ptr<HMM> hmm, const boost::unordered_map<std::string,std::vector<HMMConnection> >& connections);
 	void resetTransitions(int id);
 
 	void substituteEmissions(const boost::unordered_map<std::string, boost::unordered_map<std::string, std::string> >& substitution);

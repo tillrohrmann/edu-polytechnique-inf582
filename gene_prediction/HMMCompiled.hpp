@@ -21,9 +21,11 @@ class HMMNode;
 class HMMCompiled{
 private:
 	int _numberNodes;
-	double* _transitions;
+	boost::unordered_map<int,double>* _mapTransitions;
+	boost::unordered_map<int,double>* _imapTransitions;
 	bool* _constantTransitionNodes;
 	bool* _constantEmissionNodes;
+	bool* _constantEmissionSetNodes;
 	boost::unordered_map<std::string,double>* _emissions;
 	boost::unordered_set<std::string> _supersetEmissions;
 	boost::unordered_set<int> _silentStates;
@@ -44,12 +46,13 @@ public:
 
 	void copy(boost::shared_ptr<HMMCompiled> dst);
 
-	void setTransition(int x, int y, double value) { _transitions[x*_numberNodes + y] = value; }
-	double getTransition(int x, int y)const { return _transitions[x*_numberNodes + y]; }
-	double getLogTransition(int x, int y)const { return std::log(_transitions[x*_numberNodes + y]); }
+	void setTransition(int x, int y, double value) { _mapTransitions[x][y]=value; _imapTransitions[y][x]=value;}//_transitions[x*_numberNodes + y] = value; }
+	double getTransition(int x, int y)const { return _mapTransitions[x].count(y) > 0? _mapTransitions[x][y]: 0;}//return _transitions[x*_numberNodes + y]; }
+	double getLogTransition(int x, int y)const { return std::log(_mapTransitions[x].count(y)>0? _mapTransitions[x][y]:0);}//return std::log(_transitions[x*_numberNodes + y]); }
 	double getTransition(boost::shared_ptr<HMMNode> src, boost::shared_ptr<HMMNode> dest);
 
 	double getInitialDistribution(int i) const { return _initialDistribution[i];}
+	double getInitialDistribution(boost::shared_ptr<HMMNode> node) const;
 	double getLogInitialDistribution(int i)const { return std::log(_initialDistribution[i]);}
 
 	double getEmission(boost::shared_ptr<HMMNode> src,const std::string & token)const;
@@ -58,6 +61,7 @@ public:
 
 	bool hasConstantEmissions(int node) const;
 	bool hasConstantTransitions(int node) const;
+	bool hasConstantEmissionSet(int node) const;
 
 	void clear();
 	void initialize(int numberNodes);
@@ -80,7 +84,7 @@ public:
 	void viterbi(const std::vector<std::string>& sequence, std::vector<int>& stateSequence);
 	double backward(const std::vector<std::string>& sequence);
 
-	void baumWelch(const std::list< std::vector<std::string> >& trainingset, double threshold);
+	void baumWelch(const std::vector< std::vector<std::string> >& trainingset, double threshold);
 
 	double forwardR(const std::vector<std::string>& sequence);
 	double backwardR(const std::vector<std::string>& sequence);
@@ -91,7 +95,10 @@ public:
 
 	void simulate(int n, std::vector<std::string>& sequence, std::vector<int>& states);
 	int getState(double* distribution);
+	int getState(const boost::unordered_map<int,double>& distribution);
 	std::string getRandomEmission(boost::unordered_map<std::string,double>& emissions);
+
+	void ID2Name(const std::vector<int>& ids, std::vector<std::string>& names) const;
 
 	std::string toString() const;
 };

@@ -34,6 +34,14 @@ public:
 
 	void extractSequences(std::vector<std::vector<std::string> >& result) const;
 	void extractAnnotatedSequences(std::vector<std::vector<std::string> >& result) const;
+	void extractAnnotations(std::vector<std::vector<std::string> >& result) const;
+
+	void extractSequencesAndAnnotations(std::vector<std::vector<std::string> >& sequences, std::vector<std::vector<std::string> >& annotations) const;
+	void extractDatabaseEntries(std::vector<DatabaseEntry* >& entries);
+
+	static void separateSet(const std::vector<DatabaseEntry* >& entries,std::vector<std::vector<std::string> >& sequences,
+			std::vector<std::vector<std::string> >&	testset, std::vector<std::vector<std::string> >& annotations,bool annotated
+			,int start,int end);
 };
 
 

@@ -7,9 +7,10 @@
 
 #include "HMMConnection.hpp"
 
+#include <boost/functional/hash_fwd.hpp>
+
 
 HMMConnection::HMMConnection(const std::string& destination, double probability):
 _probability(probability),_destination(destination){
 }
-
 

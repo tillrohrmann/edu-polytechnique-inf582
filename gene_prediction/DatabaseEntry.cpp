@@ -50,6 +50,21 @@ void DatabaseEntry::instantiateData(){
 		if(_data[i] == "N"){
 			_data[i] = alphabet[(int)(4*_random())];
 		}
+		if(_data[i] == "R"){
+			_data[i] = alphabet[2*(int)(2*_random())];
+		}
+		if(_data[i] == "B"){
+			_data[i] = alphabet[(int)(3*_random())+1];
+		}
+		if(_data[i] == "Y"){
+			_data[i] = alphabet[(int)(2*_random())*2+1];
+		}
+		if(_data[i] == "S"){
+			_data[i] = alphabet[(int)(2*_random())+1];
+		}
+		if(_data[i] == "K"){
+			_data[i] = alphabet[(int)(2*_random())+2];
+		}
 	}
 }
 
@@ -146,6 +161,12 @@ void DatabaseEntry::getAnnotation(std::vector<std::string>& result) const{
 			result.push_back("U");
 		}
 	}
+}
+
+void DatabaseEntry::extractAnnotation(std::vector<std::vector<std::string> >& result) const{
+	std::vector<std::string> annotation;
+	getAnnotation(annotation);
+	result.push_back(annotation);
 }
 
 

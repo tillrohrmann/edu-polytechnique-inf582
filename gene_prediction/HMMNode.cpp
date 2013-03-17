@@ -18,11 +18,14 @@
 #include "HMM.hpp"
 #include "nullPtr.hpp"
 
-HMMNode::HMMNode(int id,const std::string& name): _id(id),_name(name),_isSilent(false),_constantEmissions(false),_constantTransitions(false){
+HMMNode::HMMNode(int id,const std::string& name): _id(id),_name(name),_isSilent(false),
+_constantEmissions(false),_constantTransitions(false), _constantEmissionSet(false){
 }
 
-HMMNode::HMMNode(int id,const std::string& name,const Transition& transitions,const Emission& emissions, bool constantTransitions, bool constantEmissions) :
-		_id(id), _name(name), _isSilent(false),_constantEmissions(constantEmissions),_constantTransitions(constantTransitions){
+HMMNode::HMMNode(int id,const std::string& name,const Transition& transitions,const Emission& emissions,
+		bool constantTransitions, bool constantEmissions, bool constantEmissionSet) :
+		_id(id), _name(name), _isSilent(false),_constantEmissions(constantEmissions),
+		_constantTransitions(constantTransitions), _constantEmissionSet(constantEmissionSet){
 	_transitions.insert(transitions.begin(),transitions.end());
 	_emissions.insert(emissions.begin(),emissions.end());
 }
@@ -52,6 +55,9 @@ void HMMNode::serialize(std::ostream& os) const{
 	os << "ID:" << _id << std::endl;
 	os << "Name:" << _name << std::endl;
 	os << "IsSilent:" << _isSilent << std::endl;
+	os << "ConstantTransitions:" << _constantTransitions << std::endl;
+	os << "ConstantEmissions:" << _constantEmissions << std::endl;
+	os << "ConstantEmissionSet:" << _constantEmissionSet << std::endl;
 	os << "Transitions:" << _transitions.size() << std::endl;
 
 	for(boost::unordered_map<int,HMMTransition>::const_iterator it = _transitions.begin();
@@ -74,6 +80,9 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 	int id;
 	std::string name;
 	bool isSilent;
+	bool constantTransitions;
+	bool constantEmissions;
+	bool constantEmissionSet;
 	boost::smatch sm;
 
 	std::getline(is,line);
@@ -112,6 +121,36 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 
 	std::getline(is,line);
 
+	if(boost::regex_match(line,sm,boost::regex("ConstantTransitions:(.*)"))){
+		ss.str(sm[1]);
+		ss >> constantTransitions;
+		ss.clear();
+	}else{
+		throw std::invalid_argument("HMMNode: ConstantTransitions cannot be deserialized.");
+	}
+
+	std::getline(is,line);
+
+	if(boost::regex_match(line,sm,boost::regex("ConstantEmissions:(.*)"))){
+		ss.str(sm[1]);
+		ss >> constantEmissions;
+		ss.clear();
+	}else{
+		throw std::invalid_argument("HMMNode: ConstantEmissions cannot be deserialized.");
+	}
+
+	std::getline(is,line);
+
+	if(boost::regex_match(line,sm,boost::regex("ConstantEmissionSet:(.*)"))){
+		ss.str(sm[1]);
+		ss >> constantEmissionSet;
+		ss.clear();
+	}else{
+		throw std::invalid_argument("HMMNode: ConstantEmissionSet cannot be deserialized.");
+	}
+
+	std::getline(is,line);
+
 	if(boost::regex_match(line,sm,boost::regex("Transitions:(.*)"))){
 		int numberTransitions;
 		ss.str(sm[1]);
@@ -145,6 +184,9 @@ void HMMNode::deserialize(std::istream& is,boost::shared_ptr<HMMNode> hmmNode){
 	hmmNode->_id =id;
 	hmmNode->_name = name;
 	hmmNode->_isSilent = isSilent;
+	hmmNode->_constantTransitions = constantTransitions;
+	hmmNode->_constantEmissions = constantEmissions;
+	hmmNode->_constantEmissionSet = constantEmissionSet;
 }
 
 boost::shared_ptr<HMMNode> HMMNode::deserialize(std::istream& is){

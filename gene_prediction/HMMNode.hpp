@@ -29,9 +29,11 @@ protected:
 	bool _isSilent;
 	bool _constantEmissions;
 	bool _constantTransitions;
+	bool _constantEmissionSet;
 public:
 	HMMNode(int id=-1,const std::string& name = "");
-	HMMNode(int id,const std::string& name, const Transition& transitions,const Emission& emissions, bool constantTransitions, bool constantEmissions);
+	HMMNode(int id,const std::string& name, const Transition& transitions,const Emission& emissions,
+			bool constantTransitions, bool constantEmissions, bool constantEmissionSet);
 	virtual ~HMMNode();
 
 	int getID() const{ return _id; }
@@ -43,9 +45,11 @@ public:
 
 	bool constantTransitions() const { return _constantTransitions;}
 	bool constantEmissions() const { return _constantEmissions; }
+	bool constantEmissionSet() const {return _constantEmissionSet;}
 
 	bool& constantTransitions() { return _constantTransitions;}
 	bool& constantEmissions() { return _constantEmissions;}
+	bool& constantEmissionSet() {return _constantEmissionSet;}
 
 	virtual int size() const { return 1; }
 	int shallowSize() const { return 1; }

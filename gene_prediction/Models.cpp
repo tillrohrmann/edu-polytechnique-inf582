@@ -13,6 +13,9 @@
 #include "HMMConnection.hpp"
 
 #include <sstream>
+#include <boost/regex.hpp>
+
+boost::unordered_map<std::string,std::string> Models::veilMapping = createVeilMapping();
 
 boost::shared_ptr<HMM> Models::createExonModel(){
 	boost::shared_ptr<HMM> result(new HMM());
@@ -37,6 +40,11 @@ boost::shared_ptr<HMM> Models::createExonModel(){
 		result->addEmission(absorbing3,HMMEmission(endings[i],-1));
 		result->addEmission(absorbing4,HMMEmission(endings[i],-1));
 	}
+
+	result->setConstantEmissionSet(absorbing1);
+	result->setConstantEmissionSet(absorbing2);
+	result->setConstantEmissionSet(absorbing3);
+	result->setConstantEmissionSet(absorbing4);
 
 	result->addEmission(stopCodonA1,HMMEmission("A",1));
 	result->setConstantEmissions(stopCodonA1,true);
@@ -156,6 +164,11 @@ boost::shared_ptr<HMM> Models::createIntronModel(){
 		result->addEmission(absorbing4,HMMEmission(endings[i],-1));
 	}
 
+	result->setConstantEmissionSet(absorbing1);
+	result->setConstantEmissionSet(absorbing2);
+	result->setConstantEmissionSet(absorbing3);
+	result->setConstantEmissionSet(absorbing4);
+
 	for(int i=0; i< 3;i++){
 		for(int j =0; j < 4;j++){
 			ss.clear();
@@ -247,6 +260,8 @@ boost::shared_ptr<HMM> Models::create3SpliceSite(){
 		for(int j =0; j< 4; j++){
 			result->addEmission(stages[i],HMMEmission(emissions[j],-1));
 		}
+
+		result->setConstantEmissionSet(stages[i]);
 	}
 
 	for(int i=0;i<14;i++){
@@ -280,6 +295,8 @@ boost::shared_ptr<HMM> Models::create5PolyASite(){
 		result->setConstantTransitions(stages[i],true);
 	}
 
+	result->setConstantTransitions(stages[5],true);
+
 	result->addStartNode(stages[0],1);
 	result->addEndNode(stages[5]);
 
@@ -302,6 +319,8 @@ boost::shared_ptr<HMM> Models::create5SpliceSite(){
 		for(int j=0;j<4;j++){
 			result->addEmission(stages[i],HMMEmission(emissions[j],-1));
 		}
+
+		result->setConstantEmissionSet(stages[i]);
 	}
 
 	for(int i=0;i<8;i++){
@@ -331,6 +350,8 @@ boost::shared_ptr<HMM> Models::createDownstreamModel(){
 		for(int j=0; j< 4; j++){
 			result->addEmission(stages[i],HMMEmission(emissions[j],-1));
 		}
+
+		result->setConstantEmissionSet(stages[i]);
 	}
 
 	for(int i =0; i<9;i++){
@@ -338,7 +359,7 @@ boost::shared_ptr<HMM> Models::createDownstreamModel(){
 		result->setConstantTransitions(stages[i],true);
 	}
 
-	result->addTransition(stages[9],HMMTransition(1,stages[9]));
+	result->addTransition(stages[9],HMMTransition(stages[9],1));
 
 	result->addStartNode(stages[0],1);
 
@@ -364,6 +385,8 @@ boost::shared_ptr<HMM> Models::createUpstreamModel(){
 		for(int j =0; j<4;j++){
 			result->addEmission(stages[i],HMMEmission(emissions[j],-1));
 		}
+
+		result->setConstantEmissionSet(stages[i]);
 	}
 
 	for(int i=0; i<14;i++){
@@ -383,74 +406,296 @@ boost::shared_ptr<HMM> Models::buildGeneModel(boost::shared_ptr<HMM> upstreamMod
 			boost::shared_ptr<HMM> exonModel, boost::shared_ptr<HMM> donor, boost::shared_ptr<HMM> intronModel,
 			boost::shared_ptr<HMM> acceptor, boost::shared_ptr<HMM> downstreamModel, boost::shared_ptr<HMM> polyASite){
 	boost::shared_ptr<HMM> result(new HMM());
-	boost::unordered_map<std::string,HMMConnection> upstream2startcodon;
-	boost::unordered_map<std::string,HMMConnection> exonIn;
-	boost::unordered_map<std::string,HMMConnection> exonOut;
-	boost::unordered_map<std::string,HMMConnection> exon2downstream;
-	boost::unordered_map<std::string,HMMConnection> donor2intron;
-	boost::unordered_map<std::string,HMMConnection> intron2acceptor;
-	boost::unordered_map<std::string,HMMConnection> downstream2polyAsite;
+	boost::unordered_map<std::string,std::vector<HMMConnection> > upstream2startcodon;
+	boost::unordered_map<std::string,std::vector<HMMConnection> > exonIn;
+	boost::unordered_map<std::string,std::vector<HMMConnection> > exonOut;
+	boost::unordered_map<std::string,std::vector<HMMConnection> > exon2downstream;
+	boost::unordered_map<std::string,std::vector<HMMConnection> > donor2intron;
+	boost::unordered_map<std::string,std::vector<HMMConnection> > intron2acceptor;
+	boost::unordered_map<std::string,std::vector<HMMConnection> > downstream2polyAsite;
+	std::vector<HMMConnection> upstream15;
+	std::vector<HMMConnection> donor9;
+	std::vector<HMMConnection> intronAbsorbing3;
+	std::vector<HMMConnection> intronAbsorbing4;
+	std::vector<HMMConnection> intronA3;
+	std::vector<HMMConnection> intronC3;
+	std::vector<HMMConnection> intronG3;
+	std::vector<HMMConnection> intronT3;
+	std::vector<HMMConnection> downstream10;
+	std::vector<HMMConnection> polyASite6;
+	std::vector<HMMConnection> acceptor15;
+	std::vector<HMMConnection> startCodon3;
+	std::vector<HMMConnection> exonAbsorbing3;
+	std::vector<HMMConnection> exonAbsorbing4;
+	std::vector<HMMConnection> exonA3;
+	std::vector<HMMConnection> exonC3;
+	std::vector<HMMConnection> exonG3;
+	std::vector<HMMConnection> exonT3;
+	std::vector<HMMConnection> exonStopCodonA2;
+	std::vector<HMMConnection> exonStopCodonG2;
 
-	result->integrateHMM(upstreamModel,boost::unordered_map<std::string,HMMConnection>());
+	result->integrateHMM(upstreamModel,boost::unordered_map<std::string,std::vector<HMMConnection> >());
 
-	upstream2startcodon.emplace("Upstream15",HMMConnection("StartCodon1"));
+	upstream15.push_back(HMMConnection("StartCodon1"));
+	upstream2startcodon.emplace("Upstream15",upstream15);
 	result->integrateHMM(startCodon,upstream2startcodon);
 
-	result->integrateHMM(exonModel,boost::unordered_map<std::string,HMMConnection>());
-	result->integrateHMM(donor,boost::unordered_map<std::string,HMMConnection>());
+	result->integrateHMM(exonModel,boost::unordered_map<std::string,std::vector<HMMConnection> >());
+	result->integrateHMM(donor,boost::unordered_map<std::string,std::vector<HMMConnection> >());
 
-	donor2intron.emplace("Donor9",HMMConnection("IntronAbsorbing1"));
-	donor2intron.emplace("Donor9",HMMConnection("IntronAbsorbing2"));
-	donor2intron.emplace("Donor9",HMMConnection("IntronA1"));
-	donor2intron.emplace("Donor9",HMMConnection("IntronC1"));
-	donor2intron.emplace("Donor9",HMMConnection("IntronG1"));
-	donor2intron.emplace("Donor9",HMMConnection("IntronT1"));
+	donor9.push_back(HMMConnection("IntronAbsorbing1"));
+	donor9.push_back(HMMConnection("IntronAbsorbing2"));
+	donor9.push_back(HMMConnection("IntronA1"));
+	donor9.push_back(HMMConnection("IntronC1"));
+	donor9.push_back(HMMConnection("IntronG1"));
+	donor9.push_back(HMMConnection("IntronT1"));
+	donor2intron.emplace("Donor9",donor9);
 	result->integrateHMM(intronModel,donor2intron);
 
-	intron2acceptor.emplace("IntronAbsorbing3",HMMConnection("Acceptor1"));
-	intron2acceptor.emplace("IntronAbsorbing4",HMMConnection("Acceptor1"));
-	intron2acceptor.emplace("IntronA3",HMMConnection("Acceptor1"));
-	intron2acceptor.emplace("IntronC3",HMMConnection("Acceptor1"));
-	intron2acceptor.emplace("IntronG3",HMMConnection("Acceptor1"));
-	intron2acceptor.emplace("IntronT3",HMMConnection("Acceptor1"));
+	intronAbsorbing3.push_back(HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronAbsorbing3",intronAbsorbing3);
+
+	intronAbsorbing4.push_back(HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronAbsorbing4",intronAbsorbing4);
+
+	intronA3.push_back(HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronA3",intronA3);
+
+	intronC3.push_back(HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronC3",intronC3);
+
+	intronG3.push_back(HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronG3",intronG3);
+
+	intronT3.push_back(HMMConnection("Acceptor1"));
+	intron2acceptor.emplace("IntronT3",intronT3);
 	result->integrateHMM(acceptor,intron2acceptor);
 
-	result->integrateHMM(downstreamModel,boost::unordered_map<std::string,HMMConnection>());
+	result->integrateHMM(downstreamModel,boost::unordered_map<std::string,std::vector<HMMConnection> >());
 
-	downstream2polyAsite.emplace("Downstream10",HMMConnection("PolyASite1"));
-	downstream2polyAsite.emplace("PolyASite6",HMMConnection("Downstream10"));
+	downstream10.push_back(HMMConnection("PolyASite1"));
+	downstream2polyAsite.emplace("Downstream10",downstream10);
+
+	polyASite6.push_back(HMMConnection("Downstream10",1));
+	downstream2polyAsite.emplace("PolyASite6",polyASite6);
 	result->integrateHMM(polyASite,downstream2polyAsite);
 
-	exonIn.emplace("Acceptor15",HMMConnection("ExonAbsorbing1"));
-	exonIn.emplace("Acceptor15",HMMConnection("ExonAbsorbing2"));
-	exonIn.emplace("Acceptor15",HMMConnection("ExonA1"));
-	exonIn.emplace("Acceptor15",HMMConnection("ExonC1"));
-	exonIn.emplace("Acceptor15",HMMConnection("ExonG1"));
-	exonIn.emplace("Acceptor15",HMMConnection("ExonT1"));
-	exonIn.emplace("StartCodon3",HMMConnection("ExonA1"));
-	exonIn.emplace("StartCodon3",HMMConnection("ExonC1"));
-	exonIn.emplace("StartCodon3",HMMConnection("ExonG1"));
-	exonIn.emplace("StartCodon3",HMMConnection("ExonT1"));
+	acceptor15.push_back(HMMConnection("ExonAbsorbing1"));
+	acceptor15.push_back(HMMConnection("ExonAbsorbing2"));
+	acceptor15.push_back(HMMConnection("ExonA1"));
+	acceptor15.push_back(HMMConnection("ExonC1"));
+	acceptor15.push_back(HMMConnection("ExonG1"));
+	acceptor15.push_back(HMMConnection("ExonT1"));
+	exonIn.emplace("Acceptor15",acceptor15);
+
+	startCodon3.push_back(HMMConnection("ExonA1"));
+	startCodon3.push_back(HMMConnection("ExonC1"));
+	startCodon3.push_back(HMMConnection("ExonG1"));
+	startCodon3.push_back(HMMConnection("ExonT1"));
+
+	startCodon3.push_back(HMMConnection("IntronA1"));
+	startCodon3.push_back(HMMConnection("IntronC1"));
+	startCodon3.push_back(HMMConnection("IntronG1"));
+	startCodon3.push_back(HMMConnection("IntronT1"));
+	startCodon3.push_back(HMMConnection("Donor1"));
+	startCodon3.push_back(HMMConnection("ExonAbsorbing3"));
+	startCodon3.push_back(HMMConnection("ExonAbsorbing4"));
+	exonIn.emplace("StartCodon3",startCodon3);
 	result->integrateHMM(boost::shared_ptr<HMM>(new HMM()),exonIn);
 
-	exonOut.emplace("ExonAbsorbing3",HMMConnection("Donor1"));
-	exonOut.emplace("ExonAbsorbing4",HMMConnection("Donor1"));
-	exonOut.emplace("ExonA3",HMMConnection("Donor1"));
-	exonOut.emplace("ExonC3",HMMConnection("Donor1"));
-	exonOut.emplace("ExonG3",HMMConnection("Donor1"));
-	exonOut.emplace("ExonT3",HMMConnection("Donor1"));
+	exonAbsorbing3.push_back(HMMConnection("Donor1"));
+	exonOut.emplace("ExonAbsorbing3",exonAbsorbing3);
 
-	exonOut.emplace("ExonStopCodonA2",HMMConnection("Downstream1"));
-	exonOut.emplace("ExonStopCodonG2",HMMConnection("Downstream1"));
+	exonAbsorbing4.push_back(HMMConnection("Donor1"));
+	exonOut.emplace("ExonAbsorbing4",exonAbsorbing4);
+
+	exonA3.push_back(HMMConnection("Donor1"));
+	exonOut.emplace("ExonA3",exonA3);
+
+	exonC3.push_back(HMMConnection("Donor1"));
+	exonOut.emplace("ExonC3",exonC3);
+
+	exonG3.push_back(HMMConnection("Donor1"));
+	exonOut.emplace("ExonG3",exonG3);
+
+	exonT3.push_back(HMMConnection("Donor1"));
+	exonOut.emplace("ExonT3",exonT3);
+
+	exonStopCodonA2.push_back(HMMConnection("Downstream1"));
+	exonOut.emplace("ExonStopCodonA2",exonStopCodonA2);
+
+	exonStopCodonG2.push_back(HMMConnection("Downstream1"));
+	exonOut.emplace("ExonStopCodonG2",exonStopCodonG2);
 	result->integrateHMM(boost::shared_ptr<HMM>(new HMM()),exonOut);
 
-	result->addStartNode("Upstream1",1.0);
+	for(int i=0; i< 15;i++){
+		std::stringstream ss;
+
+		ss << "Upstream" << (i+1);
+		result->addStartNode(ss.str(),-1);
+	}
+
+	result->addStartNode("StartCodon1",-1.0);
 	result->addEndNode("Downstream10");
 	result->addEndNode("PolyASite6");
 
 	return result;
 }
 
+void Models::VeilAnnotation(const std::vector<std::string>& states, std::vector<std::string>& output){
 
+	for(std::vector<std::string>::const_iterator it = states.begin(); it != states.end(); ++it){
+		for(boost::unordered_map<std::string,std::string>::const_iterator jt = veilMapping.begin(); jt != veilMapping.end(); ++jt){
+			if(boost::regex_match(*it,boost::regex(jt->first))){
+				output.push_back(jt->second);
+				break;
+			}
+		}
+	}
+}
+
+boost::unordered_map<std::string,std::string> Models::createVeilMapping(){
+	boost::unordered_map<std::string, std::string> result;
+	std::stringstream ss;
+
+	result.emplace("Exon.*","E");
+	result.emplace("Intron.*","I");
+	result.emplace("Upstream.*","U");
+	result.emplace("Downstream.*","D");
+	result.emplace("StartCodon.*","E");
+	result.emplace("PolyASite.*","D");
+
+	for(int i=0; i<3;i++){
+		ss.str(std::string());
+		ss.clear();
+		ss << "Donor" << (i+1);
+
+		result.emplace(ss.str(),"E");
+	}
+
+	for(int i=3; i< 9;i++){
+		ss.str(std::string());
+		ss.clear();
+		ss << "Donor" << (i+1);
+
+		result.emplace(ss.str(),"I");
+	}
+
+	for(int i=0;i < 14;i++){
+		ss.str(std::string());
+		ss.clear();
+		ss<<"Acceptor" << (i+1);
+		result.emplace(ss.str(),"I");
+
+	}
+
+	result.emplace("Acceptor15","E");
+
+	return result;
+}
+
+boost::shared_ptr<HMM> Models::createVeilModel(){
+	boost::shared_ptr<HMM> exonModel = Models::createExonModel();
+	boost::shared_ptr<HMM> intronModel = Models::createIntronModel();
+	boost::shared_ptr<HMM> upstreamModel = Models::createUpstreamModel();
+	boost::shared_ptr<HMM> downstreamModel = Models::createDownstreamModel();
+	boost::shared_ptr<HMM> acceptorModel = Models::create3SpliceSite();
+	boost::shared_ptr<HMM> donorModel = Models::create5SpliceSite();
+	boost::shared_ptr<HMM> polyASite = Models::create5PolyASite();
+	boost::shared_ptr<HMM> startCodon = Models::createStartCodon();
+
+	return buildGeneModel(upstreamModel,startCodon,exonModel,donorModel,intronModel,acceptorModel,downstreamModel,polyASite);
+}
+
+void Models::createAnnotatedSubstitution(boost::unordered_map<std::string, boost::unordered_map<std::string, std::string> >& substitution){
+	boost::unordered_map<std::string, std::string> substitutionExon;
+	boost::unordered_map<std::string, std::string> substitutionIntron;
+	boost::unordered_map<std::string, std::string> substitutionDownstream;
+	boost::unordered_map<std::string, std::string> substitutionUpstream;
+	std::string bases[] = { "A", "C", "G", "T" };
+	std::string prefixes[] = { "D", "U", "E", "I" };
+	std::stringstream ss;
+
+	for (int i = 0; i < 4; i++) {
+		ss.str("");
+		ss.clear();
+		ss << "E" << bases[i];
+
+		substitutionExon.emplace(bases[i], ss.str());
+	}
+
+	for (int i = 0; i < 4; i++) {
+		ss.str("");
+		ss.clear();
+		ss << "I" << bases[i];
+
+		substitutionIntron.emplace(bases[i], ss.str());
+	}
+
+	for (int i = 0; i < 4; i++) {
+		ss.str("");
+		ss.clear();
+		ss << "D" << bases[i];
+
+		substitutionDownstream.emplace(bases[i], ss.str());
+	}
+
+	for (int i = 0; i < 4; i++) {
+		ss.str("");
+		ss.clear();
+		ss << "U" << bases[i];
+
+		substitutionUpstream.emplace(bases[i], ss.str());
+	}
+
+	substitution.emplace("Upstream.*",substitutionUpstream);
+	substitution.emplace("StartCodon.*",substitutionExon);
+	substitution.emplace("Exon.*",substitutionExon);
+	substitution.emplace("Downstream.*",substitutionDownstream);
+	substitution.emplace("PolyASite.*",substitutionDownstream);
+	substitution.emplace("Intron.*",substitutionIntron);
+
+	for(int i=1; i <=3; i++){
+		ss.str("");
+		ss.clear();
+		ss << "Donor" << i;
+		substitution.emplace(ss.str(),substitutionExon);
+	}
+
+	for(int i=4; i<=9; i++){
+		ss.str("");
+		ss.clear();
+		ss << "Donor" << i;
+		substitution.emplace(ss.str(),substitutionIntron);
+	}
+
+	for(int i=1;i<=14;i++){
+		ss.str("");
+		ss.clear();
+		ss << "Acceptor" << i;
+		substitution.emplace(ss.str(),substitutionIntron);
+	}
+
+	substitution.emplace("Acceptor15",substitutionExon);
+}
+
+void Models::createInverseAnnotatedSubstitution(boost::unordered_map<std::string, boost::unordered_map<std::string,std::string> >& inverseSubstitution){
+	boost::unordered_map<std::string, std::string> iSubstitution;
+	std::string bases[] = { "A", "C", "G", "T" };
+	std::string prefixes[] = { "D", "U", "E", "I" };
+	std::stringstream ss;
+
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			ss.str("");
+			ss.clear();
+			ss << prefixes[i] << bases[j];
+
+			iSubstitution.emplace(ss.str(), bases[j]);
+		}
+	}
+
+	inverseSubstitution.emplace(".*",iSubstitution);
+}
 
 
