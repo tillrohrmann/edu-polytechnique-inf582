@@ -19,10 +19,9 @@ class HMM;
 class CrossValidation{
 public:
 	static boost::shared_ptr<HMMCompiled> crossValidation(boost::shared_ptr<HMMCompiled> compiled,const std::vector<std::vector<std::string> >& trainingSet,double threshold,int tries, int testingSize);
-	static boost::shared_ptr<HMMCompiled> crossValidationR(boost::shared_ptr<HMMCompiled> compiled,const std::vector<std::vector<std::string> >& trainingSet,double threshold,int tries, int testingSize);
 
-	static void modelLearning(boost::shared_ptr<HMM> hmm, const std::vector<DatabaseEntry*>& entries,
-			int testsetSize, int tries, const std::string& errorEvaluation, double threshold);
+	static void modelLearning(const std::string& prefix, boost::shared_ptr<HMM> hmm, const std::vector<DatabaseEntry*>& entries,
+			int testsetSize, int tries, const std::string& errorEvaluation, double threshold, bool annotated= true);
 };
 
 

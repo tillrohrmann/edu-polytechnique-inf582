@@ -16,7 +16,9 @@ int main(int argc, char** argv){
 	//Modules::test3StateToyExample();
 	//Modules::learnExonModel();
 
-	Modules::evaluateModel("completeModel.hmm");
+	//Modules::evaluateModel("completeModel.hmm");
+
+	Modules::learnAndEvaluateModel("2");
 
 	return 0;
 }

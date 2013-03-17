@@ -210,7 +210,7 @@ void Modules::test3StateToyExample() {
 	sequence.push_back("C");
 	sequence.push_back("G");
 	std::cout << std::exp(compiled->forward(sequence)) << std::endl;
-	std::cout << compiled->forwardR(sequence) << std::endl;
+	std::cout << compiled->forward(sequence) << std::endl;
 
 	states.clear();
 
@@ -284,7 +284,7 @@ void Modules::evaluateModel(const std::string& hmmFilename){
 	std::cout << result << std::endl;
 }
 
-void Modules::learnAndEvaluateModel(){
+void Modules::learnAndEvaluateModel(const std::string& prefix){
 	GeneDatabase database;
 	std::string dataFilename = "DNASequences.fasta";
 	std::string cdsFilename = "CDS.tbl";
@@ -296,7 +296,9 @@ void Modules::learnAndEvaluateModel(){
 
 	database.extractDatabaseEntries(entries);
 
+	std::vector<DatabaseEntry*> smallset(entries.begin(),entries.begin()+20);
+
 	hmm = Models::createVeilModel();
 
-	CrossValidation::modelLearning(hmm,entries,114,1,"evaluation",0.01);
+	CrossValidation::modelLearning(prefix,hmm,entries,114,1,"Threshold",0.01,true);
 }

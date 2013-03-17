@@ -12,13 +12,17 @@
 #include <boost/unordered_set.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/random.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include <vector>
 #include <list>
 
-class HMMNode;
+#include "Analytics.hpp"
 
-class HMMCompiled{
+class HMMNode;
+class HMM;
+
+class HMMCompiled  : public boost::enable_shared_from_this<HMMCompiled>{
 private:
 	int _numberNodes;
 	boost::unordered_map<int,double>* _mapTransitions;
@@ -40,6 +44,11 @@ private:
 	boost::random::uniform_01<boost::random::mt19937> _random;
 
 	double elnsum(double x, double y);
+
+	void internalBaumWelch(const std::vector<std::vector<std::string> >& trainingset,
+		boost::unordered_map<int,double>* cTransitions, boost::unordered_map<std::string,double>* cEmissions,
+		double* cInitial, bool initialRun);
+
 public:
 	HMMCompiled();
 	~HMMCompiled();
@@ -85,10 +94,14 @@ public:
 	double backward(const std::vector<std::string>& sequence);
 
 	void baumWelch(const std::vector< std::vector<std::string> >& trainingset, double threshold);
-
-	double forwardR(const std::vector<std::string>& sequence);
-	double backwardR(const std::vector<std::string>& sequence);
-	void baumWelchR(const std::list< std::vector<std::string> >& trainingset, double threshold);
+	Analytics::AnalyticsResult baumWelch(boost::shared_ptr<HMM> hmm,const  boost::unordered_map<std::string,boost::unordered_map<std::string,std::string> >& substitution,
+			const boost::unordered_map<std::string, boost::unordered_map<std::string,std::string > >& inverseSubstitution,
+			const std::vector< std::vector<std::string> >& trainingset, const std::vector< std::vector<std::string> >& testset,
+			const std::vector<std::vector<std::string> >& annotations,double threshold, bool annotated);
+	Analytics::AnalyticsResult baumWelchIterated(boost::shared_ptr<HMM> hmm,const  boost::unordered_map<std::string,boost::unordered_map<std::string,std::string> >& substitution,
+				const boost::unordered_map<std::string, boost::unordered_map<std::string,std::string > >& inverseSubstitution,
+				const std::vector< std::vector<std::string> >& trainingset, const std::vector< std::vector<std::string> >& testset,
+				const std::vector<std::vector<std::string> >& annotations,int numIterations, bool annotated);
 
 	void finishCompilation();
 	void initProbabilities();

@@ -16,7 +16,7 @@ namespace Modules{
 
 	void evaluateModel(const std::string & hmmFilename);
 
-	void learnAndEvaluateModel();
+	void learnAndEvaluateModel(const std::string& prefix ="");
 
 	void test2StateToyExample();
 	void test3StateToyExample();

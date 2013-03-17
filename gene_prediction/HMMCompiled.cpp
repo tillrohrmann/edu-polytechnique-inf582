@@ -19,11 +19,13 @@
 #include "Exceptions.hpp"
 #include "Pair.hpp"
 #include "HMMNode.hpp"
+#include "HMM.hpp"
 
 HMMCompiled::HMMCompiled() :
 		_numberNodes(0), _mapTransitions(NULL), _imapTransitions(NULL), _constantTransitionNodes(
-				NULL), _constantEmissionNodes(NULL),_constantEmissionSetNodes(NULL), _emissions(NULL), _initialDistribution(
-				NULL), _counter(0), _random(boost::random::mt19937(time(NULL))) {
+				NULL), _constantEmissionNodes(NULL), _constantEmissionSetNodes(
+				NULL), _emissions(NULL), _initialDistribution(NULL), _counter(
+				0), _random(boost::random::mt19937(time(NULL))) {
 }
 
 HMMCompiled::~HMMCompiled() {
@@ -126,8 +128,8 @@ bool HMMCompiled::hasConstantEmissions(int node) const {
 	return _constantEmissionNodes[node];
 }
 
-bool HMMCompiled::hasConstantEmissionSet(int node) const{
-	if(std::abs(node)>=_numberNodes){
+bool HMMCompiled::hasConstantEmissionSet(int node) const {
+	if (std::abs(node) >= _numberNodes) {
 		throw std::invalid_argument("Node index out of range");
 	}
 
@@ -191,11 +193,13 @@ void HMMCompiled::addEmission(boost::shared_ptr<HMMNode> src,
 	_emissions[index].emplace(token, probability);
 }
 
-double HMMCompiled::getInitialDistribution(boost::shared_ptr<HMMNode> node)const{
+double HMMCompiled::getInitialDistribution(
+		boost::shared_ptr<HMMNode> node) const {
 	int index = getIndex(node);
 
-	if(index <0){
-		throw std::invalid_argument("getInitialDistribution: Src could not be found in the mapping.");
+	if (index < 0) {
+		throw std::invalid_argument(
+				"getInitialDistribution: Src could not be found in the mapping.");
 	}
 
 	return getInitialDistribution(index);
@@ -410,9 +414,11 @@ double HMMCompiled::forward(const std::vector<std::string>& sequence) {
 		for (int i = 0; i < _numberNodes; i++) {
 			cur[i] = -std::numeric_limits<double>::infinity();
 			if (!isSilent(i)) {
-				for(boost::unordered_map<int,double>::const_iterator jt = _imapTransitions[i].begin();
-						jt != _imapTransitions[i].end(); ++jt){
-					cur[i] = elnsum(cur[i],prev[jt->first] + std::log(jt->second));
+				for (boost::unordered_map<int, double>::const_iterator jt =
+						_imapTransitions[i].begin();
+						jt != _imapTransitions[i].end(); ++jt) {
+					cur[i] = elnsum(cur[i],
+							prev[jt->first] + std::log(jt->second));
 				}
 
 				cur[i] = cur[i] + getLogEmission(i, *it);
@@ -423,9 +429,11 @@ double HMMCompiled::forward(const std::vector<std::string>& sequence) {
 				order != _silentStateOrder.end(); ++order) {
 			int node = *order;
 
-			for(boost::unordered_map<int,double>::const_iterator jt = _imapTransitions[node].begin();
-					jt != _imapTransitions[node].end(); ++jt){
-				cur[node] = elnsum(cur[node],cur[jt->first] + std::log(jt->second));
+			for (boost::unordered_map<int, double>::const_iterator jt =
+					_imapTransitions[node].begin();
+					jt != _imapTransitions[node].end(); ++jt) {
+				cur[node] = elnsum(cur[node],
+						cur[jt->first] + std::log(jt->second));
 			}
 		}
 	}
@@ -458,18 +466,24 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence) {
 		for (int i = 0; i < _numberNodes; i++) {
 			cur[i] = -std::numeric_limits<double>::infinity();
 			if (!isSilent(i)) {
-				for(boost::unordered_map<int,double>::const_iterator jt = _mapTransitions[i].begin();
-						jt != _mapTransitions[i].end(); ++jt){
-					cur[i] = elnsum(cur[i],prev[jt->first] + getLogEmission(jt->first,sequence[k])+std::log(jt->second));
+				for (boost::unordered_map<int, double>::const_iterator jt =
+						_mapTransitions[i].begin();
+						jt != _mapTransitions[i].end(); ++jt) {
+					cur[i] = elnsum(cur[i],
+							prev[jt->first]
+									+ getLogEmission(jt->first, sequence[k])
+									+ std::log(jt->second));
 				}
 			}
 		}
 
 		for (int i = _silentStateOrder.size() - 1; i >= 0; i--) {
 			int node = _silentStateOrder[i];
-			for(boost::unordered_map<int,double>::const_iterator jt = _mapTransitions[node].begin();
-					jt != _mapTransitions[node].end(); ++jt){
-				cur[node] = elnsum(cur[node],cur[jt->first]+std::log(jt->second));
+			for (boost::unordered_map<int, double>::const_iterator jt =
+					_mapTransitions[node].begin();
+					jt != _mapTransitions[node].end(); ++jt) {
+				cur[node] = elnsum(cur[node],
+						cur[jt->first] + std::log(jt->second));
 			}
 		}
 	}
@@ -487,9 +501,10 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence) {
 
 	for (int i = _silentStateOrder.size() - 1; i >= 0; i--) {
 		int node = _silentStateOrder[i];
-		for(boost::unordered_map<int,double>::const_iterator jt = _mapTransitions[node].begin();
-				jt != _mapTransitions[node].end(); ++jt){
-			cur[node] = elnsum(cur[node],jt->second + cur[jt->first]);
+		for (boost::unordered_map<int, double>::const_iterator jt =
+				_mapTransitions[node].begin();
+				jt != _mapTransitions[node].end(); ++jt) {
+			cur[node] = elnsum(cur[node], jt->second + cur[jt->first]);
 		}
 	}
 
@@ -530,9 +545,10 @@ void HMMCompiled::viterbi(const std::vector<std::string>& sequence,
 				maxProb = -std::numeric_limits<double>::infinity();
 				maxPred = -1;
 
-				for(boost::unordered_map<int,double>::const_iterator jt = _imapTransitions[i].begin();
-						jt != _imapTransitions[i].end(); ++jt){
-					if(maxProb < prev[jt->first] + std::log(jt->second)){
+				for (boost::unordered_map<int, double>::const_iterator jt =
+						_imapTransitions[i].begin();
+						jt != _imapTransitions[i].end(); ++jt) {
+					if (maxProb < prev[jt->first] + std::log(jt->second)) {
 						maxProb = prev[jt->first] + std::log(jt->second);
 						maxPred = jt->first;
 					}
@@ -548,9 +564,10 @@ void HMMCompiled::viterbi(const std::vector<std::string>& sequence,
 			maxProb = -std::numeric_limits<double>::infinity();
 			maxPred = -1;
 
-			for(boost::unordered_map<int,double>::const_iterator kt = _imapTransitions[*jt].begin();
-					kt != _imapTransitions[*jt].end(); ++kt){
-				if(maxProb < cur[kt->first] + std::log(kt->second)){
+			for (boost::unordered_map<int, double>::const_iterator kt =
+					_imapTransitions[*jt].begin();
+					kt != _imapTransitions[*jt].end(); ++kt) {
+				if (maxProb < cur[kt->first] + std::log(kt->second)) {
 					maxProb = cur[kt->first] + std::log(kt->second);
 					maxPred = kt->first;
 				}
@@ -587,6 +604,206 @@ void HMMCompiled::viterbi(const std::vector<std::string>& sequence,
 	delete[] backtrack;
 }
 
+void HMMCompiled::internalBaumWelch(
+		const std::vector<std::vector<std::string> >& trainingset,
+		boost::unordered_map<int, double>* cTransitions,
+		boost::unordered_map<std::string, double>* cEmissions,
+		double* cInitial,bool initialRun) {
+
+	for (std::vector<std::vector<std::string> >::const_iterator it =
+			trainingset.begin(); it != trainingset.end(); ++it) {
+		double * forward = new double[_numberNodes * (it->size())];
+		double * backward = new double[_numberNodes * (it->size())];
+		double probWord = -std::numeric_limits<double>::infinity();
+		boost::unordered_map<std::string, double> temp;
+
+		if (initialRun)
+			_supersetEmissions.insert(it->at(0));
+
+		//calculate forward function
+		for (int i = 0; i < _numberNodes; i++) {
+			forward[i] = getLogInitialDistribution(i)
+					+ getLogEmission(i, it->at(0));
+		}
+
+		for (int c = 1; c < it->size(); c++) {
+			if (initialRun)
+				_supersetEmissions.insert(it->at(c));
+
+			for (int i = 0; i < _numberNodes; i++) {
+				forward[_numberNodes * c + i] =
+						-std::numeric_limits<double>::infinity();
+				if (!isSilent(i)) {
+					for (boost::unordered_map<int, double>::const_iterator jt =
+							_imapTransitions[i].begin();
+							jt != _imapTransitions[i].end(); ++jt) {
+						forward[_numberNodes * c + i] = elnsum(
+								forward[_numberNodes * c + i],
+								forward[_numberNodes * (c - 1) + jt->first]
+										+ std::log(jt->second));
+					}
+
+					forward[_numberNodes * c + i] =
+							forward[_numberNodes * c + i]
+									+ getLogEmission(i, it->at(c));
+				}
+			}
+
+			for (int i = 0; i < _silentStateOrder.size(); i++) {
+				int node = _silentStateOrder[i];
+
+				for (boost::unordered_map<int, double>::const_iterator jt =
+						_imapTransitions[node].begin();
+						jt != _imapTransitions[node].end(); ++jt) {
+					forward[_numberNodes * c + node] = elnsum(
+							forward[_numberNodes * c + node],
+							forward[_numberNodes * c + jt->first]
+									+ std::log(jt->second));
+				}
+			}
+		}
+
+		for (int i = 0; i < _numberNodes; i++) {
+			probWord = elnsum(probWord,
+					forward[i + _numberNodes * (it->size() - 1)]);
+		}
+
+		if (probWord == -std::numeric_limits<double>::infinity()) {
+			if(initialRun){
+				std::cerr << "Data not representable by model" << std::endl;
+
+				for (int i = 0; i < it->size(); i++) {
+					std::cerr << it->at(i);
+				}
+				std::cerr << std::endl;
+
+				for (int t = 0; t < it->size(); t++) {
+					double s = -std::numeric_limits<double>::infinity();
+					for (int i = 0; i < _numberNodes; i++) {
+						s = elnsum(s, forward[i + t * _numberNodes]);
+					}
+
+					if (s == -std::numeric_limits<double>::infinity()) {
+						std::cerr << "Break:" << t << std::endl;
+						for (int i = std::max(0, t - 5); i <= t; i++) {
+							std::cerr << it->at(i);
+						}
+
+						std::cerr << std::endl;
+						break;
+					}
+				}
+			}
+
+			delete[] forward;
+			delete[] backward;
+			continue;
+		}
+
+		//calculate backward function
+		for (int i = 0; i < _numberNodes; i++) {
+			backward[i + _numberNodes * (it->size() - 1)] = 0;
+		}
+
+		for (int c = it->size() - 2; c >= 0; c--) {
+			for (int i = 0; i < _numberNodes; i++) {
+				backward[i + _numberNodes * c] =
+						-std::numeric_limits<double>::infinity();
+				if (!isSilent(i)) {
+					for (boost::unordered_map<int, double>::const_iterator jt =
+							_mapTransitions[i].begin();
+							jt != _mapTransitions[i].end(); ++jt) {
+						backward[i + _numberNodes * c] = elnsum(
+								backward[i + _numberNodes * c],
+								backward[jt->first + _numberNodes * (c + 1)]
+										+ std::log(jt->second)
+										+ getLogEmission(jt->first,
+												it->at(c + 1)));
+					}
+				}
+			}
+
+			for (int i = _silentStateOrder.size() - 1; i >= 0; i--) {
+				int node = _silentStateOrder[i];
+
+				for (boost::unordered_map<int, double>::const_iterator jt =
+						_mapTransitions[i].begin();
+						jt != _mapTransitions[i].end(); ++jt) {
+					backward[node + _numberNodes * c] = elnsum(
+							backward[node + _numberNodes * c],
+							backward[jt->first + _numberNodes * c]
+									+ std::log(jt->second));
+				}
+			}
+		}
+
+		// calculate contributions
+		// transitions
+		for (int i = 0; i < _numberNodes; i++) {
+			for (boost::unordered_map<int, double>::const_iterator jt =
+					_mapTransitions[i].begin(); jt != _mapTransitions[i].end();
+					++jt) {
+				double numerator = -std::numeric_limits<double>::infinity();
+
+				if (isSilent(jt->first)) {
+					for (int t = 0; t < it->size() - 1; t++) {
+						numerator =
+								elnsum(numerator,
+										forward[t * _numberNodes + i]
+												+ backward[t * _numberNodes
+														+ jt->first]);
+					}
+				} else {
+					for (int t = 0; t < it->size() - 1; t++) {
+						numerator = elnsum(numerator,
+								forward[t * _numberNodes + i]
+										+ backward[(t + 1) * _numberNodes
+												+ jt->first]
+										+ getLogEmission(jt->first,
+												it->at(t + 1)));
+					}
+				}
+				cTransitions[i][jt->first] += std::exp(
+						numerator + std::log(jt->second) - probWord);
+			}
+		}
+
+		// emissions
+		for (int i = 0; i < _numberNodes; i++) {
+			if (!isSilent(i)) {
+				for (boost::unordered_set<std::string>::const_iterator jt =
+						_supersetEmissions.begin();
+						jt != _supersetEmissions.end(); ++jt) {
+					temp[*jt] = -std::numeric_limits<double>::infinity();
+				}
+
+				for (int t = 0; t < it->size(); t++) {
+					temp[it->at(t)] = elnsum(temp[it->at(t)],
+							forward[t * _numberNodes + i]
+									+ backward[t * _numberNodes + i]);
+				}
+
+				for (boost::unordered_map<std::string, double>::const_iterator jt =
+						temp.begin(); jt != temp.end(); ++jt) {
+					double prob = std::exp(jt->second - probWord);
+
+					if (prob > 0)
+						cEmissions[i][jt->first] += prob;
+				}
+			}
+		}
+
+		// initial distribution
+		for (int i = 0; i < _numberNodes; i++) {
+			cInitial[i] += std::exp(forward[i] + backward[i] - probWord);
+		}
+
+		delete[] forward;
+		delete[] backward;
+	}
+
+}
+
 void HMMCompiled::baumWelch(
 		const std::vector<std::vector<std::string> >& trainingset,
 		double threshold) {
@@ -618,266 +835,40 @@ void HMMCompiled::baumWelch(
 			cInitial[i] = 0;
 		}
 
-		for (std::vector<std::vector<std::string> >::const_iterator it =
-				trainingset.begin(); it != trainingset.end(); ++it) {
-			double * forward = new double[_numberNodes * (it->size())];
-			double * backward = new double[_numberNodes * (it->size())];
-			double probWord = -std::numeric_limits<double>::infinity();
-			boost::unordered_map<std::string, double> temp;
-
-			if (initialRun)
-				_supersetEmissions.insert(it->at(0));
-
-			//calculate forward function
-			for (int i = 0; i < _numberNodes; i++) {
-				forward[i] = getLogInitialDistribution(i)
-						+ getLogEmission(i, it->at(0));
-			}
-
-			for (int c = 1; c < it->size(); c++) {
-				if (initialRun)
-					_supersetEmissions.insert(it->at(c));
-
-				for (int i = 0; i < _numberNodes; i++) {
-					forward[_numberNodes * c + i] =
-							-std::numeric_limits<double>::infinity();
-					if (!isSilent(i)) {
-						for(boost::unordered_map<int,double>::const_iterator jt = _imapTransitions[i].begin();
-								jt != _imapTransitions[i].end(); ++jt){
-							forward[_numberNodes*c+i] = elnsum(forward[_numberNodes*c+i],forward[_numberNodes*(c-1)+jt->first]+std::log(jt->second));
-						}
-
-						forward[_numberNodes*c+i] = forward[_numberNodes*c+i] + getLogEmission(i,it->at(c));
-					}
-				}
-
-				for (int i = 0; i < _silentStateOrder.size(); i++) {
-					int node = _silentStateOrder[i];
-
-					for (boost::unordered_map<int, double>::const_iterator jt =
-							_imapTransitions[node].begin();
-							jt != _imapTransitions[node].end(); ++jt) {
-						forward[_numberNodes * c + node] = elnsum(
-								forward[_numberNodes * c + node],
-								forward[_numberNodes * c + jt->first]
-										+ std::log(jt->second));
-					}
-				}
-			}
-
-
-			for (int i = 0; i < _numberNodes; i++) {
-				probWord = elnsum(probWord,
-						forward[i + _numberNodes * (it->size() - 1)]);
-			}
-
-			if(probWord == -std::numeric_limits<double>::infinity()){
-				std::cerr << "Data not representable by model" << std::endl;
-
-				for(int i=0; i< it->size(); i++){
-					std::cerr << it->at(i);
-				}
-				std::cerr << std::endl;
-
-				for(int t= 0; t < it->size(); t++){
-					double s = -std::numeric_limits<double>::infinity();
-					for(int i=0; i< _numberNodes;i++){
-						s = elnsum(s,forward[i+t*_numberNodes]);
-					}
-
-					if(s == -std::numeric_limits<double>::infinity()){
-						std::cerr << "Break:" << t << std::endl;
-						for(int i = std::max(0,t-5); i <= t;i++){
-							std::cerr << it->at(i);
-						}
-
-						std::cerr << std::endl;
-						break;
-					}
-				}
-
-				delete [] forward;
-				delete [] backward;
-				continue;
-			}
-
-			//calculate backward function
-			for (int i = 0; i < _numberNodes; i++) {
-				backward[i + _numberNodes * (it->size() - 1)] = 0;
-			}
-
-			for (int c = it->size() - 2; c >= 0; c--) {
-				for (int i = 0; i < _numberNodes; i++) {
-					backward[i + _numberNodes * c] =
-							-std::numeric_limits<double>::infinity();
-					if (!isSilent(i)) {
-						for (boost::unordered_map<int, double>::const_iterator jt =
-								_mapTransitions[i].begin();
-								jt != _mapTransitions[i].end(); ++jt) {
-							backward[i + _numberNodes * c] = elnsum(
-									backward[i + _numberNodes * c],
-									backward[jt->first + _numberNodes * (c + 1)]
-											+ std::log(jt->second)
-											+ getLogEmission(jt->first,
-													it->at(c + 1)));
-						}
-					}
-				}
-
-				for (int i = _silentStateOrder.size() - 1; i >= 0; i--) {
-					int node = _silentStateOrder[i];
-
-					for (boost::unordered_map<int, double>::const_iterator jt =
-							_mapTransitions[i].begin();
-							jt != _mapTransitions[i].end(); ++jt) {
-						backward[node + _numberNodes * c] = elnsum(
-								backward[node + _numberNodes * c],
-								backward[jt->first + _numberNodes * c]
-										+ std::log(jt->second));
-					}
-				}
-			}
-
-//			for (int i = 0; i < _numberNodes * it->size(); i++) {
-//				std::cout << forward[i] << " ";
-//			}
-//			std::cout << std::endl;
-
-			// calculate contributions
-			// transitions
-			for (int i = 0; i < _numberNodes; i++) {
-				for (boost::unordered_map<int, double>::const_iterator jt =
-						_mapTransitions[i].begin();
-						jt != _mapTransitions[i].end(); ++jt) {
-					double numerator = -std::numeric_limits<double>::infinity();
-
-					if (isSilent(jt->first)) {
-						for (int t = 0; t < it->size() - 1; t++) {
-							numerator = elnsum(numerator,
-									forward[t * _numberNodes + i]
-											+ backward[t * _numberNodes
-													+ jt->first]);
-						}
-					} else {
-						for (int t = 0; t < it->size() - 1; t++) {
-							numerator = elnsum(numerator,
-									forward[t * _numberNodes + i]
-											+ backward[(t + 1) * _numberNodes
-													+ jt->first]
-											+ getLogEmission(jt->first,
-													it->at(t + 1)));
-						}
-					}
-//					std::cout << _int2Node[i]->getName() << "->" << _int2Node[jt->first]->getName() << ":" << std::exp(numerator + std::log(jt->second) - probWord) <<
-//							"=exp(" << numerator + std::log(jt->second) - probWord << ")" << " num:" << numerator << " tran:" << std::log(jt->second) <<
-//							" prob:" << probWord << std::endl;
-					cTransitions[i][jt->first] += std::exp(
-							numerator + std::log(jt->second) - probWord);
-				}
-			}
-
-//			for (int i = 0; i < _numberNodes; i++) {
-//				for (int j = 0; j < _numberNodes; j++) {
-//					std::cout << i << "->" << j << ":" << cTransitions[i][j]
-//							<< " ";
-//				}
-//				std::cout << std::endl;
-//			}
-
-			// emissions
-			for (int i = 0; i < _numberNodes; i++) {
-				if (!isSilent(i)) {
-					for (boost::unordered_set<std::string>::const_iterator jt =
-							_supersetEmissions.begin();
-							jt != _supersetEmissions.end(); ++jt) {
-						temp[*jt] = -std::numeric_limits<double>::infinity();
-					}
-
-					for (int t = 0; t < it->size(); t++) {
-						temp[it->at(t)] = elnsum(temp[it->at(t)],
-								forward[t * _numberNodes + i]
-										+ backward[t * _numberNodes + i]);
-					}
-
-					for (boost::unordered_map<std::string, double>::const_iterator jt =
-							temp.begin(); jt != temp.end(); ++jt) {
-						double prob = std::exp(jt->second-probWord);
-
-						if(prob >0)
-							cEmissions[i][jt->first] += prob;
-					}
-				}
-			}
-
-//			for (int i = 0; i < _numberNodes; i++) {
-//				std::cout << i << "=";
-//				for (boost::unordered_map<std::string, double>::const_iterator jt =
-//						cEmissions[i].begin(); jt != cEmissions[i].end();
-//						++jt) {
-//					std::cout << jt->first << ":" << jt->second << " ";
-//				}
-//				std::cout << std::endl;
-//			}
-
-			// initial distribution
-			for (int i = 0; i < _numberNodes; i++) {
-				cInitial[i] += std::exp(forward[i] + backward[i] - probWord);
-			}
-
-			delete[] forward;
-			delete[] backward;
-		}
-
-//		for(int i=0; i< _numberNodes;i++){
-//			std::cout << _int2Node[i]->getName() << "=>";
-//
-//			for(boost::unordered_map<std::string,double>::const_iterator it =cEmissions[i].begin();
-//					it != cEmissions[i].end(); ++it){
-//				std::cout << it->first << ":" << it->second << " ";
-//			}
-//			std::cout << std::endl;
-//		}
+		internalBaumWelch(trainingset,cTransitions,cEmissions,cInitial,initialRun);
 
 		//smoothing of transitions
-		for(int i=0; i< _numberNodes; i++){
-			for(boost::unordered_map<int,double>::iterator jt = cTransitions[i].begin();
-				jt != cTransitions[i].end(); ++jt){
+		for (int i = 0; i < _numberNodes; i++) {
+			for (boost::unordered_map<int, double>::iterator jt =
+					cTransitions[i].begin(); jt != cTransitions[i].end();
+					++jt) {
 				jt->second += 1;
 			}
 		}
 
 		// smoothing by pseudo counts
 		for (int i = 0; i < _numberNodes; i++) {
-			if(!hasConstantEmissionSet(i)){
+			if (!hasConstantEmissionSet(i)) {
 				for (boost::unordered_set<std::string>::const_iterator it =
-						_supersetEmissions.begin(); it != _supersetEmissions.end();
-						++it) {
+						_supersetEmissions.begin();
+						it != _supersetEmissions.end(); ++it) {
 					cEmissions[i][*it] += 1;
 				}
-			}else{
-				for(boost::unordered_map<std::string,double>::iterator it = _emissions[i].begin();
-						it != _emissions[i].end(); ++it){
+			} else {
+				for (boost::unordered_map<std::string, double>::iterator it =
+						_emissions[i].begin(); it != _emissions[i].end();
+						++it) {
 					cEmissions[i][it->first] += 1;
 				}
 			}
 		}
-
-//		for(int i=0; i< _numberNodes;i++){
-//			std::cout << _int2Node[i]->getName() << "->";
-//
-//			for(boost::unordered_map<std::string,double>::const_iterator it =cEmissions[i].begin();
-//					it != cEmissions[i].end(); ++it){
-//				std::cout << it->first << ":" << it->second << " ";
-//			}
-//			std::cout << std::endl;
-//		}
 
 		// new emission probabilities
 		for (int i = 0; i < _numberNodes; i++) {
 			if (!hasConstantEmissions(i)) {
 				double sum = 0;
 
-				if(!hasConstantEmissionSet(i)){
+				if (!hasConstantEmissionSet(i)) {
 					for (boost::unordered_map<std::string, double>::const_iterator it =
 							cEmissions[i].begin(); it != cEmissions[i].end();
 							++it) {
@@ -895,7 +886,7 @@ void HMMCompiled::baumWelch(
 
 						_emissions[i][it->first] = prob;
 					}
-				}else{
+				} else {
 					for (boost::unordered_map<std::string, double>::const_iterator it =
 							_emissions[i].begin(); it != _emissions[i].end();
 							++it) {
@@ -971,25 +962,354 @@ void HMMCompiled::baumWelch(
 				<< " Transition:" << maxDiffTransition << " Emission:"
 				<< maxDiffEmission << std::endl;
 
-//		std::stringstream ss;
-//		ss << "Emissions:" << std::endl;
-//
-//		for(int i=0; i < _numberNodes; i++){
-//			ss << i  << ":";
-//			for(boost::unordered_map<std::string,double>::const_iterator it = _emissions[i].begin();
-//					it != _emissions[i].end(); ++it){
-//				ss << it->first << "=" << it->second << " ";
-//			}
-//			ss << std::endl;
-//		}
-//
-//		std::cout << ss.str();
-
 	} while (maxDiff > threshold);
 
 	delete[] cTransitions;
 	delete[] cEmissions;
 	delete[] cInitial;
+}
+
+Analytics::AnalyticsResult HMMCompiled::baumWelch(boost::shared_ptr<HMM> hmm,const  boost::unordered_map<std::string,boost::unordered_map<std::string,std::string> >& substitution,
+			const boost::unordered_map<std::string, boost::unordered_map<std::string,std::string > >& inverseSubstitution,
+			const std::vector< std::vector<std::string> >& trainingset, const std::vector< std::vector<std::string> >& testset,
+			const std::vector<std::vector<std::string> >& annotations,double threshold,bool annotated){
+
+	boost::unordered_map<int, double>* cTransitions = new boost::unordered_map<
+			int, double>[_numberNodes];
+	boost::unordered_map<std::string, double>* cEmissions =
+			new boost::unordered_map<std::string, double>[_numberNodes];
+	double* cInitial = new double[_numberNodes];
+	bool initialRun = true;
+	double prob;
+	double diff;
+	double oldValue = -std::numeric_limits<double>::infinity();
+	double currentValue = 0;
+	Analytics::AnalyticsResult oldAnalytics;
+	Analytics::AnalyticsResult currentAnalytics;
+	boost::shared_ptr<HMMCompiled> oldHMM(new HMMCompiled());
+	boost::shared_ptr<HMMCompiled> chmm(new HMMCompiled);
+
+	if (trainingset.size() == 0) {
+		std::cerr << "Training set is empty." << std::endl;
+		return Analytics::AnalyticsResult();
+	}
+
+	do {
+		chmm->copy(oldHMM);
+		oldValue = currentValue;
+		oldAnalytics = currentAnalytics;
+
+		for (int i = 0; i < _numberNodes; i++) {
+			cTransitions[i].clear();
+			cEmissions[i].clear();
+		}
+
+		for (int i = 0; i < _numberNodes; i++) {
+			cInitial[i] = 0;
+		}
+
+		internalBaumWelch(trainingset,cTransitions,cEmissions,cInitial,initialRun);
+
+		//smoothing of transitions
+		for (int i = 0; i < _numberNodes; i++) {
+			for (boost::unordered_map<int, double>::iterator jt =
+					cTransitions[i].begin(); jt != cTransitions[i].end();
+					++jt) {
+				jt->second += 1;
+			}
+		}
+
+		// smoothing by pseudo counts
+		for (int i = 0; i < _numberNodes; i++) {
+			if (!hasConstantEmissionSet(i)) {
+				for (boost::unordered_set<std::string>::const_iterator it =
+						_supersetEmissions.begin();
+						it != _supersetEmissions.end(); ++it) {
+					cEmissions[i][*it] += 1;
+				}
+			} else {
+				for (boost::unordered_map<std::string, double>::iterator it =
+						_emissions[i].begin(); it != _emissions[i].end();
+						++it) {
+					cEmissions[i][it->first] += 1;
+				}
+			}
+		}
+
+		// new emission probabilities
+		for (int i = 0; i < _numberNodes; i++) {
+			if (!hasConstantEmissions(i)) {
+				double sum = 0;
+
+				if (!hasConstantEmissionSet(i)) {
+					for (boost::unordered_map<std::string, double>::const_iterator it =
+							cEmissions[i].begin(); it != cEmissions[i].end();
+							++it) {
+						sum += it->second;
+					}
+
+					for (boost::unordered_map<std::string, double>::const_iterator it =
+							cEmissions[i].begin(); it != cEmissions[i].end();
+							++it) {
+						prob = it->second / sum;
+						double eProb = getEmission(i, it->first);
+						_emissions[i][it->first] = prob;
+					}
+				} else {
+					for (boost::unordered_map<std::string, double>::const_iterator it =
+							_emissions[i].begin(); it != _emissions[i].end();
+							++it) {
+						sum += cEmissions[i].at(it->first);
+					}
+
+					for (boost::unordered_map<std::string, double>::iterator it =
+							_emissions[i].begin(); it != _emissions[i].end();
+							++it) {
+						prob = cEmissions[i].at(it->first) / sum;
+						double eProb = it->second;
+						it->second = prob;
+					}
+
+				}
+			}
+		}
+
+		// new transition probabilities
+		for (int i = 0; i < _numberNodes; i++) {
+			if (!hasConstantTransitions(i)) {
+				double sum = 0;
+
+				for (boost::unordered_map<int, double>::const_iterator jt =
+						cTransitions[i].begin(); jt != cTransitions[i].end();
+						++jt) {
+					sum += jt->second;
+				}
+
+				for (boost::unordered_map<int, double>::iterator jt =
+						_mapTransitions[i].begin();
+						jt != _mapTransitions[i].end(); ++jt) {
+					double prob = 0;
+
+					if (sum != 0) {
+						prob = cTransitions[i][jt->first] / sum;
+					}
+
+					jt->second = prob;
+					_imapTransitions[jt->first][i] = prob;
+
+				}
+			}
+		}
+
+		// new initial distribution
+		double sum = 0;
+		for (int i = 0; i < _numberNodes; i++) {
+			sum += cInitial[i];
+		}
+
+		for (int i = 0; i < _numberNodes; i++) {
+			prob = cInitial[i] / sum;
+			_initialDistribution[i] = prob;
+		}
+
+		initialRun = false;
+
+		if(annotated){
+			hmm->update(shared_from_this());
+			hmm->substituteEmissions(inverseSubstitution);
+			hmm->compile(chmm);
+			hmm->substituteEmissions(substitution);
+		}else{
+			copy(chmm);
+		}
+
+		currentAnalytics = Analytics::analyse(chmm,testset,annotations);
+		currentValue = Analytics::evaluate(currentAnalytics);
+
+		diff = currentValue - oldValue;
+
+	} while (diff > threshold);
+
+	delete[] cTransitions;
+	delete[] cEmissions;
+	delete[] cInitial;
+
+	oldHMM->copy(shared_from_this());
+
+	return oldAnalytics;
+}
+
+Analytics::AnalyticsResult HMMCompiled::baumWelchIterated(boost::shared_ptr<HMM> hmm,const  boost::unordered_map<std::string,boost::unordered_map<std::string,std::string> >& substitution,
+			const boost::unordered_map<std::string, boost::unordered_map<std::string,std::string > >& inverseSubstitution,
+			const std::vector< std::vector<std::string> >& trainingset, const std::vector< std::vector<std::string> >& testset,
+			const std::vector<std::vector<std::string> >& annotations,int numIterations, bool annotated){
+
+	boost::unordered_map<int, double>* cTransitions = new boost::unordered_map<
+			int, double>[_numberNodes];
+	boost::unordered_map<std::string, double>* cEmissions =
+			new boost::unordered_map<std::string, double>[_numberNodes];
+	double* cInitial = new double[_numberNodes];
+	bool initialRun = true;
+	double prob;
+	double diff;
+	double oldValue = -std::numeric_limits<double>::infinity();
+	double currentValue = 0;
+	Analytics::AnalyticsResult oldAnalytics;
+	Analytics::AnalyticsResult currentAnalytics;
+	boost::shared_ptr<HMMCompiled> oldHMM(new HMMCompiled());
+	boost::shared_ptr<HMMCompiled> chmm(new HMMCompiled);
+
+	if (trainingset.size() == 0) {
+		std::cerr << "Training set is empty." << std::endl;
+		return Analytics::AnalyticsResult();
+	}
+
+	for(int k=0; k< numIterations;k++){
+
+		for (int i = 0; i < _numberNodes; i++) {
+			cTransitions[i].clear();
+			cEmissions[i].clear();
+		}
+
+		for (int i = 0; i < _numberNodes; i++) {
+			cInitial[i] = 0;
+		}
+
+		internalBaumWelch(trainingset,cTransitions,cEmissions,cInitial,initialRun);
+
+		//smoothing of transitions
+		for (int i = 0; i < _numberNodes; i++) {
+			for (boost::unordered_map<int, double>::iterator jt =
+					cTransitions[i].begin(); jt != cTransitions[i].end();
+					++jt) {
+				jt->second += 1;
+			}
+		}
+
+		// smoothing by pseudo counts
+		for (int i = 0; i < _numberNodes; i++) {
+			if (!hasConstantEmissionSet(i)) {
+				for (boost::unordered_set<std::string>::const_iterator it =
+						_supersetEmissions.begin();
+						it != _supersetEmissions.end(); ++it) {
+					cEmissions[i][*it] += 1;
+				}
+			} else {
+				for (boost::unordered_map<std::string, double>::iterator it =
+						_emissions[i].begin(); it != _emissions[i].end();
+						++it) {
+					cEmissions[i][it->first] += 1;
+				}
+			}
+		}
+
+		// new emission probabilities
+		for (int i = 0; i < _numberNodes; i++) {
+			if (!hasConstantEmissions(i)) {
+				double sum = 0;
+
+				if (!hasConstantEmissionSet(i)) {
+					for (boost::unordered_map<std::string, double>::const_iterator it =
+							cEmissions[i].begin(); it != cEmissions[i].end();
+							++it) {
+						sum += it->second;
+					}
+
+					for (boost::unordered_map<std::string, double>::const_iterator it =
+							cEmissions[i].begin(); it != cEmissions[i].end();
+							++it) {
+						prob = it->second / sum;
+						double eProb = getEmission(i, it->first);
+						_emissions[i][it->first] = prob;
+					}
+				} else {
+					for (boost::unordered_map<std::string, double>::const_iterator it =
+							_emissions[i].begin(); it != _emissions[i].end();
+							++it) {
+						sum += cEmissions[i].at(it->first);
+					}
+
+					for (boost::unordered_map<std::string, double>::iterator it =
+							_emissions[i].begin(); it != _emissions[i].end();
+							++it) {
+						prob = cEmissions[i].at(it->first) / sum;
+						double eProb = it->second;
+						it->second = prob;
+					}
+
+				}
+			}
+		}
+
+		// new transition probabilities
+		for (int i = 0; i < _numberNodes; i++) {
+			if (!hasConstantTransitions(i)) {
+				double sum = 0;
+
+				for (boost::unordered_map<int, double>::const_iterator jt =
+						cTransitions[i].begin(); jt != cTransitions[i].end();
+						++jt) {
+					sum += jt->second;
+				}
+
+				for (boost::unordered_map<int, double>::iterator jt =
+						_mapTransitions[i].begin();
+						jt != _mapTransitions[i].end(); ++jt) {
+					double prob = 0;
+
+					if (sum != 0) {
+						prob = cTransitions[i][jt->first] / sum;
+					}
+
+					jt->second = prob;
+					_imapTransitions[jt->first][i] = prob;
+
+				}
+			}
+		}
+
+		// new initial distribution
+		double sum = 0;
+		for (int i = 0; i < _numberNodes; i++) {
+			sum += cInitial[i];
+		}
+
+		for (int i = 0; i < _numberNodes; i++) {
+			prob = cInitial[i] / sum;
+			_initialDistribution[i] = prob;
+		}
+
+		initialRun = false;
+
+		if(annotated){
+			hmm->update(shared_from_this());
+			hmm->substituteEmissions(inverseSubstitution);
+			hmm->compile(chmm);
+			hmm->substituteEmissions(substitution);
+		}else{
+			copy(chmm);
+		}
+
+		currentAnalytics = Analytics::analyse(chmm,testset,annotations);
+		currentValue = Analytics::evaluate(currentAnalytics);
+
+		if(currentValue > oldValue){
+			oldValue=currentValue;
+			oldAnalytics = currentAnalytics;
+			chmm->copy(oldHMM);
+		}
+
+		std::cout << "Iteration:" << k << " value:" << currentValue << std::endl;
+		std::cout << currentAnalytics << std::endl;
+	}
+
+	delete[] cTransitions;
+	delete[] cEmissions;
+	delete[] cInitial;
+
+	oldHMM->copy(shared_from_this());
+
+	return oldAnalytics;
 }
 
 void HMMCompiled::initProbabilities() {
@@ -1018,22 +1338,24 @@ void HMMCompiled::initProbabilities() {
 		sum = 0;
 		constant = 0;
 
-		for(boost::unordered_map<int,double>::iterator jt = _mapTransitions[i].begin();
-				jt != _mapTransitions[i].end(); ++jt){
-			if(jt->second >= 0){
+		for (boost::unordered_map<int, double>::iterator jt =
+				_mapTransitions[i].begin(); jt != _mapTransitions[i].end();
+				++jt) {
+			if (jt->second >= 0) {
 				constant += jt->second;
-			}else{
-				do{
+			} else {
+				do {
 					jt->second = -_random();
-				}while(jt->second == 0);
+				} while (jt->second == 0);
 				sum += jt->second;
 			}
 		}
 
-		for(boost::unordered_map<int,double>::iterator jt = _mapTransitions[i].begin();
-				jt != _mapTransitions[i].end(); ++jt){
-			if(jt->second < 0){
-				jt->second *= (1-constant)/sum;
+		for (boost::unordered_map<int, double>::iterator jt =
+				_mapTransitions[i].begin(); jt != _mapTransitions[i].end();
+				++jt) {
+			if (jt->second < 0) {
+				jt->second *= (1 - constant) / sum;
 
 				_imapTransitions[jt->first][i] = jt->second;
 			}
@@ -1177,358 +1499,22 @@ void HMMCompiled::copy(boost::shared_ptr<HMMCompiled> dst) {
 
 	dst->_constantEmissionSetNodes = new bool[_numberNodes];
 	std::memcpy(dst->_constantEmissionSetNodes, _constantEmissionSetNodes,
-			sizeof(bool)*_numberNodes);
+			sizeof(bool) * _numberNodes);
 
 	dst->_int2Node = _int2Node;
 	dst->_node2Int = _node2Int;
 
 	dst->_counter = _counter;
 
-	dst->_random.base().seed((unsigned int)(_random()*std::numeric_limits<unsigned int>::max())+time(NULL));
+	dst->_random.base().seed(
+			(unsigned int) (_random() * std::numeric_limits<unsigned int>::max())
+					+ time(NULL));
 }
 
-void HMMCompiled::ID2Name(const std::vector<int>& ids, std::vector<std::string>& names) const{
-	for(std::vector<int>::const_iterator it = ids.begin(); it != ids.end(); ++it){
+void HMMCompiled::ID2Name(const std::vector<int>& ids,
+		std::vector<std::string>& names) const {
+	for (std::vector<int>::const_iterator it = ids.begin(); it != ids.end();
+			++it) {
 		names.push_back(_int2Node.at(*it)->getName());
 	}
 }
-
-double HMMCompiled::forwardR(const std::vector<std::string>& sequence) {
-	double* prev = new double[_numberNodes];
-	double* cur = new double[_numberNodes];
-	double *temp;
-	double result = 0;
-
-	std::vector<std::string>::const_iterator it = sequence.begin();
-
-	for (int i = 0; i < _numberNodes; i++) {
-		cur[i] = _initialDistribution[i] * getEmission(i, *it);
-	}
-
-	++it;
-
-	for (; it != sequence.end(); ++it) {
-		temp = prev;
-		prev = cur;
-		cur = temp;
-
-		for (int i = 0; i < _numberNodes; i++) {
-			cur[i] = 0;
-			if (!isSilent(i)) {
-				for (int j = 0; j < _numberNodes; j++) {
-					cur[i] += prev[j] * getTransition(j, i)
-							* getEmission(i, *it);
-				}
-			}
-		}
-
-		for (std::vector<int>::const_iterator order = _silentStateOrder.begin();
-				order != _silentStateOrder.end(); ++order) {
-			int node = *order;
-			for (int j = 0; j < _numberNodes; j++) {
-				cur[node] += cur[j] * getTransition(j, node);
-			}
-		}
-	}
-
-	for (int i = 0; i < _numberNodes; i++) {
-		result += cur[i];
-	}
-
-	delete[] prev;
-	delete[] cur;
-
-	return result;
-}
-
-double HMMCompiled::backwardR(const std::vector<std::string>& sequence) {
-	double* prev = new double[_numberNodes];
-	double* cur = new double[_numberNodes];
-	double *temp;
-	double result = 0;
-
-	for (int i = 0; i < _numberNodes; i++) {
-		cur[i] = 1;
-	}
-
-	for (int k = sequence.size() - 1; k > 0; k--) {
-		temp = prev;
-		prev = cur;
-		cur = temp;
-
-		for (int i = 0; i < _numberNodes; i++) {
-			cur[i] = 0;
-			if (!isSilent(i)) {
-				for (int j = 0; j < _numberNodes; j++) {
-					cur[i] += prev[j] * getEmission(j, sequence[k])
-							* getTransition(i, j);
-				}
-			}
-		}
-
-		for (int i = _silentStateOrder.size() - 1; i >= 0; i--) {
-			int node = _silentStateOrder[i];
-			for (int j = 0; j < _numberNodes; j++) {
-				cur[node] += cur[j] * getTransition(node, j);
-			}
-		}
-	}
-
-	temp = prev;
-	prev = cur;
-	cur = temp;
-
-	for (int i = 0; i < _numberNodes; i++) {
-		cur[i] = 0;
-		if (!isSilent(i)) {
-			cur[i] = getEmission(i, sequence[0]) * prev[i];
-		}
-	}
-
-	for (int i = _silentStateOrder.size() - 1; i >= 0; i--) {
-		int node = _silentStateOrder[i];
-		for (int j = 0; j < _numberNodes; j++) {
-			cur[i] += getTransition(node, j) * cur[j];
-		}
-	}
-
-	for (int i = 0; i < _numberNodes; i++) {
-		result += cur[i] * _initialDistribution[i];
-	}
-
-	delete[] prev;
-	delete[] cur;
-
-	return result;
-}
-
-void HMMCompiled::baumWelchR(
-		const std::list<std::vector<std::string> >& trainingset,
-		double threshold) {
-	double* cTransitions = new double[_numberNodes * _numberNodes];
-	boost::unordered_map<std::string, double>* cEmissions =
-			new boost::unordered_map<std::string, double>[_numberNodes];
-	double* cInitial = new double[_numberNodes];
-	double maxDiff, maxDiffTransition, maxDiffEmission, maxDiffInitial;
-	double prob;
-	bool initialRun = true;
-
-	do {
-		maxDiff = 0;
-		maxDiffTransition = 0;
-		maxDiffEmission = 0;
-		maxDiffInitial = 0;
-		for (int i = 0; i < _numberNodes * _numberNodes; i++) {
-			cTransitions[i] = 0;
-		}
-
-		for (int i = 0; i < _numberNodes; i++) {
-			cInitial[i] = 0;
-		}
-
-		cEmissions->clear();
-
-		for (std::list<std::vector<std::string> >::const_iterator it =
-				trainingset.begin(); it != trainingset.end(); ++it) {
-			double * forward = new double[_numberNodes * (it->size())];
-			double * backward = new double[_numberNodes * (it->size())];
-			double probWord = 0;
-
-			for (int i = 0; i < _numberNodes * (it->size()); i++) {
-				forward[i] = 0;
-				backward[i] = 0;
-			}
-
-			if (initialRun)
-				_supersetEmissions.insert(it->at(0));
-
-			//calculate forward function
-			for (int i = 0; i < _numberNodes; i++) {
-				forward[i] = _initialDistribution[i]
-						* getEmission(i, it->at(0));
-			}
-
-			for (int c = 1; c < it->size(); c++) {
-				if (initialRun)
-					_supersetEmissions.insert(it->at(c));
-
-				for (int i = 0; i < _numberNodes; i++) {
-					forward[_numberNodes * c + i] = 0;
-					if (!isSilent(i)) {
-						for (int j = 0; j < _numberNodes; j++) {
-							forward[_numberNodes * c + i] +=
-									forward[_numberNodes * (c - 1) + j]
-											* getEmission(i, it->at(c))
-											* getTransition(j, i);
-						}
-					}
-				}
-
-				for (int i = 0; i < _silentStateOrder.size(); i++) {
-					int node = _silentStateOrder[i];
-
-					for (int j = 0; j < _numberNodes; j++) {
-						forward[_numberNodes * c + node] += forward[_numberNodes
-								* c + j] * getTransition(j, node);
-					}
-				}
-			}
-
-			for (int i = 0; i < _numberNodes; i++) {
-				probWord += forward[_numberNodes * (it->size() - 1) + i];
-			}
-
-			//calculate backward function
-			for (int i = 0; i < _numberNodes; i++) {
-				backward[i + _numberNodes * (it->size() - 1)] = 1;
-			}
-
-			for (int c = it->size() - 2; c >= 0; c--) {
-				for (int i = 0; i < _numberNodes; i++) {
-					backward[i + _numberNodes * c] = 0;
-					if (!isSilent(i)) {
-						for (int j = 0; j < _numberNodes; j++) {
-							backward[i + _numberNodes * c] += backward[j
-									+ _numberNodes * (c + 1)]
-									* getTransition(i, j)
-									* getEmission(j, it->at(c + 1));
-						}
-					}
-				}
-
-				for (int i = _silentStateOrder.size() - 1; i >= 0; i--) {
-					int node = _silentStateOrder[i];
-					for (int j = 0; j < _numberNodes; j++) {
-						backward[node + _numberNodes * c] += backward[j
-								+ _numberNodes * c] * getTransition(node, j);
-					}
-				}
-			}
-
-			// calculate contributions
-			// transitions
-			for (int i = 0; i < _numberNodes; i++) {
-				for (int j = 0; j < _numberNodes; j++) {
-					double temp = 0;
-					if (isSilent(j)) {
-						for (int t = 0; t < it->size(); t++) {
-							temp += forward[t * _numberNodes + i]
-									* backward[t * _numberNodes + j];
-						}
-					} else {
-						for (int t = 0; t < it->size() - 1; t++) {
-							temp += forward[t * _numberNodes + i]
-									* backward[(t + 1) * _numberNodes + j]
-									* getEmission(j, it->at(t + 1));
-						}
-					}
-
-					cTransitions[i * _numberNodes + j] += getTransition(i, j)
-							* temp / probWord;
-				}
-			}
-
-			// emissions
-			for (int i = 0; i < _numberNodes; i++) {
-				if (!isSilent(i)) {
-					for (int t = 0; t < it->size(); t++) {
-						cEmissions[i][it->at(t)] +=
-								forward[t * _numberNodes + i]
-										* backward[t * _numberNodes + i]
-										/ probWord;
-					}
-				}
-			}
-
-			// initial distribution
-			for (int i = 0; i < _numberNodes; i++) {
-				cInitial[i] += forward[i] * backward[i] / probWord;
-			}
-
-			delete[] forward;
-			delete[] backward;
-		}
-
-		// smoothing by pseudo counts
-		for (int i = 0; i < _numberNodes; i++) {
-			for (boost::unordered_set<std::string>::const_iterator it =
-					_supersetEmissions.begin(); it != _supersetEmissions.end();
-					++it) {
-				cEmissions[i][*it] += 1;
-			}
-		}
-
-		// new emission probabilities
-		for (int i = 0; i < _numberNodes; i++) {
-			if (!hasConstantEmissions(i)) {
-				double sum = 0;
-
-				for (boost::unordered_map<std::string, double>::const_iterator it =
-						cEmissions[i].begin(); it != cEmissions[i].end();
-						++it) {
-					sum += it->second;
-				}
-
-				for (boost::unordered_map<std::string, double>::const_iterator it =
-						cEmissions[i].begin(); it != cEmissions[i].end();
-						++it) {
-					prob = it->second / sum;
-					double eProb = getEmission(i, it->first);
-					if (maxDiffEmission < std::abs(eProb - prob)) {
-						maxDiffEmission = std::abs(eProb - prob);
-					}
-
-					_emissions[i][it->first] = prob;
-				}
-			}
-		}
-
-		// new transition probabilities
-		for (int i = 0; i < _numberNodes; i++) {
-			if (!hasConstantTransitions(i)) {
-				double sum = 0;
-
-				for (int j = 0; j < _numberNodes; j++) {
-					sum += cTransitions[i * _numberNodes + j];
-				}
-
-				for (int j = 0; j < _numberNodes; j++) {
-					prob = cTransitions[i * _numberNodes + j] / sum;
-					if (maxDiffTransition
-							< std::abs(getTransition(i, j) - prob)) {
-						maxDiffTransition = std::abs(
-								getTransition(i, j) - prob);
-					}
-					setTransition(i, j, prob);
-				}
-			}
-		}
-
-		// new initial distribution
-		double sum = 0;
-		for (int i = 0; i < _numberNodes; i++) {
-			sum += cInitial[i];
-		}
-
-		for (int i = 0; i < _numberNodes; i++) {
-			prob = cInitial[i] / sum;
-			if (maxDiffInitial < std::abs(_initialDistribution[i] - prob)) {
-				maxDiffInitial = std::abs(_initialDistribution[i] - prob);
-			}
-			_initialDistribution[i] = prob;
-		}
-
-		initialRun = false;
-		maxDiff = std::max(maxDiffInitial,
-				std::max(maxDiffTransition, maxDiffEmission));
-
-		std::cout << "MaxDiff:" << maxDiff << " Initial:" << maxDiffInitial
-				<< " Transition:" << maxDiffTransition << " Emission:"
-				<< maxDiffEmission << std::endl;
-	} while (maxDiff > threshold);
-
-	delete[] cTransitions;
-	delete[] cEmissions;
-	delete[] cInitial;
-}
-
