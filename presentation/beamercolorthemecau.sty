@@ -1,0 +1,42 @@
+% Copyright 2004 by Madhusudan Singh <madhusudan.singh@gmail.com>
+%
+% This file may be distributed and/or modified
+%
+% 1. under the LaTeX Project Public License and/or
+% 2. under the GNU Public License.
+%
+% See the file doc/licenses/LICENSE for more details.
+
+\ProvidesPackageRCS $Header: /cvsroot/latex-beamer/latex-beamer/themes/color/beamercolorthemecau.sty,v 1.6 2007/01/28 20:48:24 tantau Exp $
+
+\mode<presentation>
+
+\definecolor{cau_darkviolet}{rgb}{0.148,0.121,0.289}
+\definecolor{cau_violet}{rgb}{0.801,0.176,0.703}
+\definecolor{cau_tf}{rgb}{0.168,0.191,0.504}
+
+
+\setbeamercolor{alerted text}{fg=red}
+\setbeamercolor*{palette primary}{fg=white,bg=cau_violet} % title
+\setbeamercolor*{palette secondary}{fg=white,bg=cau_darkviolet!70!black} % font color of frametitle
+\setbeamercolor*{palette tertiary}{fg=cau_darkviolet!70!black,bg=cau_darkviolet!70!black} % no subsection overview
+%\setbeamercolor*{palette tertiary}{fg=white,bg=cau_darkviolet!70!black} % with subsection overview
+\setbeamercolor*{palette quaternary}{fg=cau_darkviolet!70!black,bg=cau_darkviolet!70!black} % no section overview
+%\setbeamercolor*{palette quaternary}{fg=white,bg=cau_darkviolet!70!black} % with section overview
+
+\setbeamercolor*{sidebar}{fg=white,bg=cau_violet}
+
+\setbeamercolor*{palette sidebar primary}{fg=cau_violet!10!black}
+\setbeamercolor*{palette sidebar secondary}{fg=white}
+\setbeamercolor*{palette sidebar tertiary}{fg=cau_violet!50!black}
+\setbeamercolor*{palette sidebar quaternary}{fg=cau_violet!70!white}
+
+\setbeamercolor*{titlelike}{parent=palette primary}
+\setbeamercolor{frametitle}{bg=cau_violet}
+\setbeamercolor{frametitle right}{bg=cau_darkviolet!70!black}
+
+\setbeamercolor*{separation line}{}
+\setbeamercolor*{fine separation line}{}
+
+\mode
+<all>
