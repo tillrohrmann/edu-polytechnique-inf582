@@ -1,0 +1,23 @@
+Parameters: Threshold learning --> algorithm continues until the maximum change in probabilities is smaller than the threshold t=0.01
+
+Annotated learning: 1 try
+		Nuc sensitivity	Nuc specificity	Ex sensitivity	Ex specificity
+Testset 1	0.891234	0.743971	0.550538	0.539785
+Testset 2	0.888242	0.723441	0.540385	0.530769
+Testset 3	0.886976	0.791392	0.588991	0.581651
+Testset 4	0.889267	0.745932	0.621971	0.613893
+Testset 5	0.896504	0.81004		0.586		0.586
+Avg		0.8904446	0.7629552	0.577577	0.5704196
+
+Average number of iterations until convergence: 17.8
+
+Not-Annotated learning: 3 tries for every testset
+		Nuc sensitivity	Nuc specificity	Ex sensitivity	Ex specificity
+Testset 1	0.693774	0.681791	0.294624	0.243011		
+Testset 2	0.663321	0.664126	0.294231	0.259615
+Testset 3	0.664092	0.720411	0.315596	0.275229
+Testset 4	0.637952	0.697138	0.402262	0.357027
+Testset 5	0.674304	0.730396	0.314		0.272
+Avg		0.6666886	0.6987724	0.3241426	0.2813764
+
+Average number of iterations until convergence: 38.933333333
