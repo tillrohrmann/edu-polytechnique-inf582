@@ -1,0 +1,104 @@
+MaxDiff:0.820654 Initial:0.294991 Transition:0.428614 Emission:0.820654
+MaxDiff:0.127231 Initial:0.0163521 Transition:0.0341706 Emission:0.127231
+MaxDiff:0.0705813 Initial:0.0141868 Transition:0.0230634 Emission:0.0705813
+MaxDiff:0.028551 Initial:0.0159345 Transition:0.0151552 Emission:0.028551
+MaxDiff:0.029655 Initial:0.0165829 Transition:0.00983133 Emission:0.029655
+MaxDiff:0.0333157 Initial:0.0195924 Transition:0.00750791 Emission:0.0333157
+MaxDiff:0.0378207 Initial:0.0249111 Transition:0.00622806 Emission:0.0378207
+MaxDiff:0.0414059 Initial:0.0291252 Transition:0.00513479 Emission:0.0414059
+MaxDiff:0.0407182 Initial:0.0292184 Transition:0.00427737 Emission:0.0407182
+MaxDiff:0.0350228 Initial:0.0238464 Transition:0.00347591 Emission:0.0350228
+MaxDiff:0.03041 Initial:0.0161745 Transition:0.0027804 Emission:0.03041
+MaxDiff:0.0243075 Initial:0.0106801 Transition:0.00220216 Emission:0.0243075
+MaxDiff:0.019112 Initial:0.00881655 Transition:0.00173304 Emission:0.019112
+MaxDiff:0.013938 Initial:0.00705663 Transition:0.00136766 Emission:0.013938
+MaxDiff:0.00974348 Initial:0.00648454 Transition:0.00111853 Emission:0.00974348
+Testset:1
+Nucleotide sensitivity:0.891234 Nucleotide specificity:0.743971 Exon sensitivity:0.550538 Exon specificity:0.539785
+
+MaxDiff:0.8206 Initial:0.300518 Transition:0.43939 Emission:0.8206
+MaxDiff:0.145131 Initial:0.0184351 Transition:0.0343591 Emission:0.145131
+MaxDiff:0.0621825 Initial:0.0198405 Transition:0.0228197 Emission:0.0621825
+MaxDiff:0.0310847 Initial:0.022142 Transition:0.0143298 Emission:0.0310847
+MaxDiff:0.0328629 Initial:0.0226209 Transition:0.00847279 Emission:0.0328629
+MaxDiff:0.0344051 Initial:0.0221155 Transition:0.00632258 Emission:0.0344051
+MaxDiff:0.03521 Initial:0.0204794 Transition:0.00574338 Emission:0.03521
+MaxDiff:0.0335714 Initial:0.0198075 Transition:0.00490857 Emission:0.0335714
+MaxDiff:0.0297053 Initial:0.0173786 Transition:0.00402108 Emission:0.0297053
+MaxDiff:0.0329161 Initial:0.0139135 Transition:0.00319192 Emission:0.0329161
+MaxDiff:0.047824 Initial:0.0114281 Transition:0.00246972 Emission:0.047824
+MaxDiff:0.0473567 Initial:0.0109589 Transition:0.00186702 Emission:0.0473567
+MaxDiff:0.0328112 Initial:0.00985196 Transition:0.00137799 Emission:0.0328112
+MaxDiff:0.0180087 Initial:0.00859084 Transition:0.000988849 Emission:0.0180087
+MaxDiff:0.0152164 Initial:0.00847689 Transition:0.000886047 Emission:0.0152164
+MaxDiff:0.0119728 Initial:0.00876927 Transition:0.000840934 Emission:0.0119728
+MaxDiff:0.00895347 Initial:0.00890432 Transition:0.000803216 Emission:0.00895347
+Testset:2
+Nucleotide sensitivity:0.888242 Nucleotide specificity:0.723441 Exon sensitivity:0.540385 Exon specificity:0.530769
+
+MaxDiff:0.820576 Initial:0.265386 Transition:0.41902 Emission:0.820576
+MaxDiff:0.110542 Initial:0.02033 Transition:0.0436051 Emission:0.110542
+MaxDiff:0.0624934 Initial:0.0221894 Transition:0.0293643 Emission:0.0624934
+MaxDiff:0.0294549 Initial:0.0276997 Transition:0.0192534 Emission:0.0294549
+MaxDiff:0.03176 Initial:0.03176 Transition:0.0123194 Emission:0.0313621
+MaxDiff:0.0348095 Initial:0.0328218 Transition:0.00760902 Emission:0.0348095
+MaxDiff:0.0393083 Initial:0.0309433 Transition:0.0063654 Emission:0.0393083
+MaxDiff:0.0426721 Initial:0.0265958 Transition:0.00608139 Emission:0.0426721
+MaxDiff:0.0410851 Initial:0.0210903 Transition:0.00561352 Emission:0.0410851
+MaxDiff:0.0351495 Initial:0.0160995 Transition:0.00507817 Emission:0.0351495
+MaxDiff:0.0270523 Initial:0.0121002 Transition:0.00454335 Emission:0.0270523
+MaxDiff:0.019515 Initial:0.00911552 Transition:0.00404436 Emission:0.019515
+MaxDiff:0.0139064 Initial:0.00703014 Transition:0.00359649 Emission:0.0139064
+MaxDiff:0.0100478 Initial:0.00663687 Transition:0.00320352 Emission:0.0100478
+MaxDiff:0.00803539 Initial:0.00600871 Transition:0.0028631 Emission:0.00803539
+Testset:3
+Nucleotide sensitivity:0.886976 Nucleotide specificity:0.791392 Exon sensitivity:0.588991 Exon specificity:0.581651
+
+MaxDiff:0.820482 Initial:0.28544 Transition:0.441545 Emission:0.820482
+MaxDiff:0.125109 Initial:0.0216282 Transition:0.0362119 Emission:0.125109
+MaxDiff:0.0714999 Initial:0.0227175 Transition:0.0226946 Emission:0.0714999
+MaxDiff:0.0367056 Initial:0.0244826 Transition:0.0136542 Emission:0.0367056
+MaxDiff:0.0383089 Initial:0.0239061 Transition:0.00778362 Emission:0.0383089
+MaxDiff:0.0405927 Initial:0.0233466 Transition:0.00580341 Emission:0.0405927
+MaxDiff:0.0408811 Initial:0.0260487 Transition:0.00506412 Emission:0.0408811
+MaxDiff:0.0374437 Initial:0.0256097 Transition:0.00428094 Emission:0.0374437
+MaxDiff:0.0320277 Initial:0.0218403 Transition:0.00353562 Emission:0.0320277
+MaxDiff:0.0273191 Initial:0.0166161 Transition:0.00287627 Emission:0.0273191
+MaxDiff:0.0265084 Initial:0.0121754 Transition:0.00232115 Emission:0.0265084
+MaxDiff:0.0210722 Initial:0.0115063 Transition:0.0018701 Emission:0.0210722
+MaxDiff:0.0182248 Initial:0.0102534 Transition:0.0015134 Emission:0.0182248
+MaxDiff:0.0151886 Initial:0.00869103 Transition:0.0012374 Emission:0.0151886
+MaxDiff:0.012204 Initial:0.00709046 Transition:0.00102768 Emission:0.012204
+MaxDiff:0.00956504 Initial:0.00562878 Transition:0.000877246 Emission:0.00956504
+Testset:4
+Nucleotide sensitivity:0.889267 Nucleotide specificity:0.745932 Exon sensitivity:0.621971 Exon specificity:0.613893
+
+MaxDiff:0.820623 Initial:0.301309 Transition:0.409467 Emission:0.820623
+MaxDiff:0.116339 Initial:0.0239126 Transition:0.0347953 Emission:0.116339
+MaxDiff:0.0398455 Initial:0.0237987 Transition:0.0211058 Emission:0.0398455
+MaxDiff:0.0297571 Initial:0.0259138 Transition:0.0126013 Emission:0.0297571
+MaxDiff:0.0400813 Initial:0.0263482 Transition:0.00875543 Emission:0.0400813
+MaxDiff:0.0432331 Initial:0.0247452 Transition:0.00820265 Emission:0.0432331
+MaxDiff:0.0368661 Initial:0.0210025 Transition:0.00797927 Emission:0.0368661
+MaxDiff:0.024934 Initial:0.0160437 Transition:0.00740855 Emission:0.024934
+MaxDiff:0.0155014 Initial:0.0115162 Transition:0.0065851 Emission:0.0155014
+MaxDiff:0.0157079 Initial:0.0100106 Transition:0.00568001 Emission:0.0157079
+MaxDiff:0.0161342 Initial:0.0124259 Transition:0.00480095 Emission:0.0161342
+MaxDiff:0.0203334 Initial:0.0132483 Transition:0.004003 Emission:0.0203334
+MaxDiff:0.0236506 Initial:0.0128844 Transition:0.00330618 Emission:0.0236506
+MaxDiff:0.0240692 Initial:0.0118738 Transition:0.00271078 Emission:0.0240692
+MaxDiff:0.0223134 Initial:0.0107042 Transition:0.00220793 Emission:0.0223134
+MaxDiff:0.0194271 Initial:0.00961163 Transition:0.00178564 Emission:0.0194271
+MaxDiff:0.0165227 Initial:0.00857571 Transition:0.00143186 Emission:0.0165227
+MaxDiff:0.0173032 Initial:0.00792801 Transition:0.00113575 Emission:0.0173032
+MaxDiff:0.018885 Initial:0.00771934 Transition:0.00094674 Emission:0.018885
+MaxDiff:0.0205389 Initial:0.0084911 Transition:0.000793364 Emission:0.0205389
+MaxDiff:0.0224768 Initial:0.00904094 Transition:0.000664208 Emission:0.0224768
+MaxDiff:0.0271675 Initial:0.00902549 Transition:0.000555069 Emission:0.0271675
+MaxDiff:0.0269274 Initial:0.00812307 Transition:0.000462586 Emission:0.0269274
+MaxDiff:0.0199324 Initial:0.006409 Transition:0.000404787 Emission:0.0199324
+MaxDiff:0.013558 Initial:0.00446844 Transition:0.000388435 Emission:0.013558
+MaxDiff:0.00910543 Initial:0.00398104 Transition:0.000371419 Emission:0.00910543
+Testset:5
+Nucleotide sensitivity:0.896504 Nucleotide specificity:0.81004 Exon sensitivity:0.586 Exon specificity:0.586
+
