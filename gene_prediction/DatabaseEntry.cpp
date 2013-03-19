@@ -48,21 +48,27 @@ void DatabaseEntry::instantiateData(){
 	std::string alphabet[] = {"A","C","G","T"};
 	for(int i=0; i< _data.size(); i++){
 		if(_data[i] == "N"){
+			// N = {A,C,G,T}
 			_data[i] = alphabet[(int)(4*_random())];
 		}
 		if(_data[i] == "R"){
+			// R = {A,G}
 			_data[i] = alphabet[2*(int)(2*_random())];
 		}
 		if(_data[i] == "B"){
+			// B = {C,G,T}
 			_data[i] = alphabet[(int)(3*_random())+1];
 		}
 		if(_data[i] == "Y"){
+			// Y = {C,T}
 			_data[i] = alphabet[(int)(2*_random())*2+1];
 		}
 		if(_data[i] == "S"){
+			// S = {C,G}
 			_data[i] = alphabet[(int)(2*_random())+1];
 		}
 		if(_data[i] == "K"){
+			// K = {G,T}
 			_data[i] = alphabet[(int)(2*_random())+2];
 		}
 	}
@@ -72,6 +78,9 @@ void DatabaseEntry::addExon(int start,int end){
 	_exons.push_back(Pair<int>(start,end));
 }
 
+/**
+ * DNA structure: Upstream, Exon, {Intron,Exon}*, Downstream
+ */
 void DatabaseEntry::extractExons(std::vector<std::vector<std::string> >& result) const{
 	for(int i =0; i< _exons.size(); i++){
 		std::vector<std::string>::const_iterator it = _data.begin();
@@ -81,6 +90,9 @@ void DatabaseEntry::extractExons(std::vector<std::vector<std::string> >& result)
 	}
 }
 
+/**
+ * DNA structure: Upstream, Exon, {Intron,Exon}*, Downstream
+ */
 void DatabaseEntry::extractIntrons(std::vector<std::vector<std::string> >& result) const{
 	if(_exons.size() > 0){
 		int start = _exons[0]._second;
@@ -92,6 +104,9 @@ void DatabaseEntry::extractIntrons(std::vector<std::vector<std::string> >& resul
 	}
 }
 
+/**
+ * DNA structure: Upstream, Exon, {Intron,Exon}*, Downstream
+ */
 void DatabaseEntry::extractDownstream(std::vector<std::vector<std::string> > & result) const{
 	if(_exons.size() >0){
 		std::vector<std::string> exon(_data.begin()+_exons[_exons.size()-1]._second,_data.end());
@@ -99,6 +114,9 @@ void DatabaseEntry::extractDownstream(std::vector<std::vector<std::string> > & r
 	}
 }
 
+/**
+ * DNA structure: Upstream, Exon, {Intron,Exon}*, Downstream
+ */
 void DatabaseEntry::extractUpstream(std::vector<std::vector<std::string> >& result) const{
 	if(_exons.size() >0){
 		std::vector<std::string> exon(_data.begin(),_data.begin()+_exons[0]._first-1);

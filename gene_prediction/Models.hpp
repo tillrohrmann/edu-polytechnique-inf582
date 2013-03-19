@@ -13,33 +13,77 @@
 
 class HMM;
 
-namespace Models{
-	boost::unordered_map<std::string,std::string> createVeilMapping();
+/**
+ * Convenience functions for the construction of the VEIL model and emission
+ * substitutions.
+ */
+namespace Models {
 
-	extern boost::unordered_map<std::string,std::string> veilMapping;
+/**
+ * This function creates the mapping from the states names of the
+ * VEIL model to the structure of the DNA (exons, introns, downstream
+ * model, upstream model).
+ */
+boost::unordered_map<std::string, std::string> createVeilMapping();
 
-	boost::shared_ptr<HMM> createExonModel();
-	boost::shared_ptr<HMM> createIntronModel();
-	boost::shared_ptr<HMM> createUpstreamModel();
-	boost::shared_ptr<HMM> createStartCodon();
-	boost::shared_ptr<HMM> create5SpliceSite();
-	boost::shared_ptr<HMM> create3SpliceSite();
-	boost::shared_ptr<HMM> createDownstreamModel();
-	boost::shared_ptr<HMM> create5PolyASite();
+/**
+ * Storage for the VEIL to DNA mapping
+ */
+extern boost::unordered_map<std::string, std::string> veilMapping;
 
-	boost::shared_ptr<HMM> createVeilModel();
+boost::shared_ptr<HMM> createExonModel();
+boost::shared_ptr<HMM> createIntronModel();
+boost::shared_ptr<HMM> createUpstreamModel();
+boost::shared_ptr<HMM> createStartCodon();
+boost::shared_ptr<HMM> create5SpliceSite();
+boost::shared_ptr<HMM> create3SpliceSite();
+boost::shared_ptr<HMM> createDownstreamModel();
+boost::shared_ptr<HMM> create5PolyASite();
 
-	void createAnnotatedSubstitution(boost::unordered_map<std::string, boost::unordered_map<std::string,std::string> >& result);
-	void createInverseAnnotatedSubstitution(boost::unordered_map<std::string, boost::unordered_map<std::string, std::string> >& result);
+boost::shared_ptr<HMM> createVeilModel();
 
-	boost::shared_ptr<HMM> buildGeneModel(boost::shared_ptr<HMM> upstreamModel, boost::shared_ptr<HMM> startCodon,
-			boost::shared_ptr<HMM> exonModel, boost::shared_ptr<HMM> donor, boost::shared_ptr<HMM> intronModel,
-			boost::shared_ptr<HMM> acceptor, boost::shared_ptr<HMM> downstreamModel, boost::shared_ptr<HMM> polyASite);
+/**
+ * This functions create the substitution for annotated sequences. That is
+ * to say, e.g. for exons
+ * 	A -> EA
+ * 	C -> EC
+ * 	G -> EG
+ * 	T -> ET
+ */
+void createAnnotatedSubstitution(
+		boost::unordered_map<std::string,
+				boost::unordered_map<std::string, std::string> >& result);
 
-	void VeilAnnotation(const std::vector<std::string>& states, std::vector<std::string>& output);
+/**
+ * This functions create the emission substitution to reverse the effect of
+ * createAnnotatedSubstitution.
+ */
+void createInverseAnnotatedSubstitution(
+		boost::unordered_map<std::string,
+				boost::unordered_map<std::string, std::string> >& result);
+
+/**
+ * This function takes the individual models of the VEIL model and connects
+ * them properly.
+ */
+boost::shared_ptr<HMM> buildGeneModel(boost::shared_ptr<HMM> upstreamModel,
+		boost::shared_ptr<HMM> startCodon, boost::shared_ptr<HMM> exonModel,
+		boost::shared_ptr<HMM> donor, boost::shared_ptr<HMM> intronModel,
+		boost::shared_ptr<HMM> acceptor, boost::shared_ptr<HMM> downstreamModel,
+		boost::shared_ptr<HMM> polyASite);
+
+/**
+ * This functions takes a sequence of state names of the VEIL model and
+ * translates them to the DNA structure. That is to say that it replaces
+ * those states representing an exon by "E", those representing an intron
+ * by "I", the downstream model by "D" and the upstream model by "U".
+ *
+ * @argument states input sequence of state names
+ * @argument output output for the translated sequence
+ *
+ */
+void VeilAnnotation(const std::vector<std::string>& states,
+		std::vector<std::string>& output);
 }
-
-
-
 
 #endif /* MODELS_HPP_ */

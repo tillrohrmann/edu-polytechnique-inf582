@@ -9,16 +9,9 @@
 #include <boost/unordered_map.hpp>
 #include <iostream>
 
-int main(int argc, char** argv){
-
-	//Modules::learnCompleteModel();
-	//Modules::test2StateToyExample();
-	//Modules::test3StateToyExample();
-	//Modules::learnExonModel();
-
-	//Modules::evaluateModel("completeModel.hmm");
-
-	Modules::learnAndEvaluateModel("2");
+int main(int argc, char** argv) {
+	// Learn complete model and start result files with "3"
+	Modules::learnAndEvaluateModel("3");
 
 	return 0;
 }

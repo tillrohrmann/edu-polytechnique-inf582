@@ -16,7 +16,6 @@
 #include <boost/heap/fibonacci_heap.hpp>
 
 #include "nullPtr.hpp"
-#include "Exceptions.hpp"
 #include "Pair.hpp"
 #include "HMMNode.hpp"
 #include "HMM.hpp"
@@ -607,8 +606,8 @@ void HMMCompiled::viterbi(const std::vector<std::string>& sequence,
 void HMMCompiled::internalBaumWelch(
 		const std::vector<std::vector<std::string> >& trainingset,
 		boost::unordered_map<int, double>* cTransitions,
-		boost::unordered_map<std::string, double>* cEmissions,
-		double* cInitial,bool initialRun) {
+		boost::unordered_map<std::string, double>* cEmissions, double* cInitial,
+		bool initialRun) {
 
 	for (std::vector<std::vector<std::string> >::const_iterator it =
 			trainingset.begin(); it != trainingset.end(); ++it) {
@@ -669,7 +668,7 @@ void HMMCompiled::internalBaumWelch(
 		}
 
 		if (probWord == -std::numeric_limits<double>::infinity()) {
-			if(initialRun){
+			if (initialRun) {
 				std::cerr << "Data not representable by model" << std::endl;
 
 				for (int i = 0; i < it->size(); i++) {
@@ -835,7 +834,8 @@ void HMMCompiled::baumWelch(
 			cInitial[i] = 0;
 		}
 
-		internalBaumWelch(trainingset,cTransitions,cEmissions,cInitial,initialRun);
+		internalBaumWelch(trainingset, cTransitions, cEmissions, cInitial,
+				initialRun);
 
 		//smoothing of transitions
 		for (int i = 0; i < _numberNodes; i++) {
@@ -969,10 +969,15 @@ void HMMCompiled::baumWelch(
 	delete[] cInitial;
 }
 
-Analytics::AnalyticsResult HMMCompiled::baumWelch(boost::shared_ptr<HMM> hmm,const  boost::unordered_map<std::string,boost::unordered_map<std::string,std::string> >& substitution,
-			const boost::unordered_map<std::string, boost::unordered_map<std::string,std::string > >& inverseSubstitution,
-			const std::vector< std::vector<std::string> >& trainingset, const std::vector< std::vector<std::string> >& testset,
-			const std::vector<std::vector<std::string> >& annotations,double threshold,bool annotated){
+Analytics::AnalyticsResult HMMCompiled::baumWelch(boost::shared_ptr<HMM> hmm,
+		const boost::unordered_map<std::string,
+				boost::unordered_map<std::string, std::string> >& substitution,
+		const boost::unordered_map<std::string,
+				boost::unordered_map<std::string, std::string> >& inverseSubstitution,
+		const std::vector<std::vector<std::string> >& trainingset,
+		const std::vector<std::vector<std::string> >& testset,
+		const std::vector<std::vector<std::string> >& annotations,
+		double threshold, bool annotated) {
 
 	boost::unordered_map<int, double>* cTransitions = new boost::unordered_map<
 			int, double>[_numberNodes];
@@ -1008,7 +1013,8 @@ Analytics::AnalyticsResult HMMCompiled::baumWelch(boost::shared_ptr<HMM> hmm,con
 			cInitial[i] = 0;
 		}
 
-		internalBaumWelch(trainingset,cTransitions,cEmissions,cInitial,initialRun);
+		internalBaumWelch(trainingset, cTransitions, cEmissions, cInitial,
+				initialRun);
 
 		//smoothing of transitions
 		for (int i = 0; i < _numberNodes; i++) {
@@ -1114,16 +1120,16 @@ Analytics::AnalyticsResult HMMCompiled::baumWelch(boost::shared_ptr<HMM> hmm,con
 
 		initialRun = false;
 
-		if(annotated){
+		if (annotated) {
 			hmm->update(shared_from_this());
 			hmm->substituteEmissions(inverseSubstitution);
 			hmm->compile(chmm);
 			hmm->substituteEmissions(substitution);
-		}else{
+		} else {
 			copy(chmm);
 		}
 
-		currentAnalytics = Analytics::analyse(chmm,testset,annotations);
+		currentAnalytics = Analytics::analyse(chmm, testset, annotations);
 		currentValue = Analytics::evaluate(currentAnalytics);
 
 		diff = currentValue - oldValue;
@@ -1139,10 +1145,16 @@ Analytics::AnalyticsResult HMMCompiled::baumWelch(boost::shared_ptr<HMM> hmm,con
 	return oldAnalytics;
 }
 
-Analytics::AnalyticsResult HMMCompiled::baumWelchIterated(boost::shared_ptr<HMM> hmm,const  boost::unordered_map<std::string,boost::unordered_map<std::string,std::string> >& substitution,
-			const boost::unordered_map<std::string, boost::unordered_map<std::string,std::string > >& inverseSubstitution,
-			const std::vector< std::vector<std::string> >& trainingset, const std::vector< std::vector<std::string> >& testset,
-			const std::vector<std::vector<std::string> >& annotations,int numIterations, bool annotated){
+Analytics::AnalyticsResult HMMCompiled::baumWelchIterated(
+		boost::shared_ptr<HMM> hmm,
+		const boost::unordered_map<std::string,
+				boost::unordered_map<std::string, std::string> >& substitution,
+		const boost::unordered_map<std::string,
+				boost::unordered_map<std::string, std::string> >& inverseSubstitution,
+		const std::vector<std::vector<std::string> >& trainingset,
+		const std::vector<std::vector<std::string> >& testset,
+		const std::vector<std::vector<std::string> >& annotations,
+		int numIterations, bool annotated) {
 
 	boost::unordered_map<int, double>* cTransitions = new boost::unordered_map<
 			int, double>[_numberNodes];
@@ -1164,7 +1176,7 @@ Analytics::AnalyticsResult HMMCompiled::baumWelchIterated(boost::shared_ptr<HMM>
 		return Analytics::AnalyticsResult();
 	}
 
-	for(int k=0; k< numIterations;k++){
+	for (int k = 0; k < numIterations; k++) {
 
 		for (int i = 0; i < _numberNodes; i++) {
 			cTransitions[i].clear();
@@ -1175,7 +1187,8 @@ Analytics::AnalyticsResult HMMCompiled::baumWelchIterated(boost::shared_ptr<HMM>
 			cInitial[i] = 0;
 		}
 
-		internalBaumWelch(trainingset,cTransitions,cEmissions,cInitial,initialRun);
+		internalBaumWelch(trainingset, cTransitions, cEmissions, cInitial,
+				initialRun);
 
 		//smoothing of transitions
 		for (int i = 0; i < _numberNodes; i++) {
@@ -1281,25 +1294,26 @@ Analytics::AnalyticsResult HMMCompiled::baumWelchIterated(boost::shared_ptr<HMM>
 
 		initialRun = false;
 
-		if(annotated){
+		if (annotated) {
 			hmm->update(shared_from_this());
 			hmm->substituteEmissions(inverseSubstitution);
 			hmm->compile(chmm);
 			hmm->substituteEmissions(substitution);
-		}else{
+		} else {
 			copy(chmm);
 		}
 
-		currentAnalytics = Analytics::analyse(chmm,testset,annotations);
+		currentAnalytics = Analytics::analyse(chmm, testset, annotations);
 		currentValue = Analytics::evaluate(currentAnalytics);
 
-		if(currentValue > oldValue){
-			oldValue=currentValue;
+		if (currentValue > oldValue) {
+			oldValue = currentValue;
 			oldAnalytics = currentAnalytics;
 			chmm->copy(oldHMM);
 		}
 
-		std::cout << "Iteration:" << k << " value:" << currentValue << std::endl;
+		std::cout << "Iteration:" << k << " value:" << currentValue
+				<< std::endl;
 		std::cout << currentAnalytics << std::endl;
 	}
 

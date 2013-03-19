@@ -17,6 +17,10 @@
 
 boost::unordered_map<std::string,std::string> Models::veilMapping = createVeilMapping();
 
+/**
+ * For the explanation of the model see the paper
+ * "Finding Genes in DNA with a Hidden Markov Model".
+ */
 boost::shared_ptr<HMM> Models::createExonModel(){
 	boost::shared_ptr<HMM> result(new HMM());
 	std::string endings[] = {"A", "C", "G", "T"};
@@ -145,6 +149,10 @@ boost::shared_ptr<HMM> Models::createExonModel(){
 	return result;
 }
 
+/**
+ * For the explanation of the model see the paper
+ * "Finding Genes in DNA with a Hidden Markov Model".
+ */
 boost::shared_ptr<HMM> Models::createIntronModel(){
 	boost::shared_ptr<HMM> result(new HMM());
 	std::string endings[] = {"A","C","G","T"};
@@ -218,6 +226,10 @@ boost::shared_ptr<HMM> Models::createIntronModel(){
 	return result;
 }
 
+/**
+ * For the explanation of the model see the paper
+ * "Finding Genes in DNA with a Hidden Markov Model".
+ */
 boost::shared_ptr<HMM> Models::createStartCodon(){
 	boost::shared_ptr<HMM> result(new HMM());
 
@@ -243,6 +255,10 @@ boost::shared_ptr<HMM> Models::createStartCodon(){
 	return result;
 }
 
+/**
+ * For the explanation of the model see the paper
+ * "Finding Genes in DNA with a Hidden Markov Model".
+ */
 boost::shared_ptr<HMM> Models::create3SpliceSite(){
 	//acceptor, 15 stages
 	boost::shared_ptr<HMM> result(new HMM());
@@ -275,6 +291,10 @@ boost::shared_ptr<HMM> Models::create3SpliceSite(){
 	return result;
 }
 
+/**
+ * For the explanation of the model see the paper
+ * "Finding Genes in DNA with a Hidden Markov Model".
+ */
 boost::shared_ptr<HMM> Models::create5PolyASite(){
 	boost::shared_ptr<HMM> result(new HMM());
 	std::stringstream ss;
@@ -303,6 +323,10 @@ boost::shared_ptr<HMM> Models::create5PolyASite(){
 	return result;
 }
 
+/**
+ * For the explanation of the model see the paper
+ * "Finding Genes in DNA with a Hidden Markov Model".
+ */
 boost::shared_ptr<HMM> Models::create5SpliceSite(){
 	//donor, 9 stages
 	boost::shared_ptr<HMM> result(new HMM());
@@ -334,6 +358,10 @@ boost::shared_ptr<HMM> Models::create5SpliceSite(){
 	return result;
 }
 
+/**
+ * For the explanation of the model see the paper
+ * "Finding Genes in DNA with a Hidden Markov Model".
+ */
 boost::shared_ptr<HMM> Models::createDownstreamModel(){
 	//10 stages long
 	boost::shared_ptr<HMM> result(new HMM());
@@ -368,7 +396,10 @@ boost::shared_ptr<HMM> Models::createDownstreamModel(){
 	return result;
 }
 
-
+/**
+ * For the explanation of the model see the paper
+ * "Finding Genes in DNA with a Hidden Markov Model".
+ */
 boost::shared_ptr<HMM> Models::createUpstreamModel(){
 	//15 stages long
 	boost::shared_ptr<HMM> result(new HMM());
@@ -402,6 +433,9 @@ boost::shared_ptr<HMM> Models::createUpstreamModel(){
 	return result;
 }
 
+/**
+ * Construction of the complete VEIL model from the individual parts.
+ */
 boost::shared_ptr<HMM> Models::buildGeneModel(boost::shared_ptr<HMM> upstreamModel, boost::shared_ptr<HMM> startCodon,
 			boost::shared_ptr<HMM> exonModel, boost::shared_ptr<HMM> donor, boost::shared_ptr<HMM> intronModel,
 			boost::shared_ptr<HMM> acceptor, boost::shared_ptr<HMM> downstreamModel, boost::shared_ptr<HMM> polyASite){
@@ -545,6 +579,8 @@ boost::shared_ptr<HMM> Models::buildGeneModel(boost::shared_ptr<HMM> upstreamMod
 void Models::VeilAnnotation(const std::vector<std::string>& states, std::vector<std::string>& output){
 
 	for(std::vector<std::string>::const_iterator it = states.begin(); it != states.end(); ++it){
+		// veilMapping contains the mapping between state names and the DNA structure
+		// (exons, introns, upstream model, downstream model)
 		for(boost::unordered_map<std::string,std::string>::const_iterator jt = veilMapping.begin(); jt != veilMapping.end(); ++jt){
 			if(boost::regex_match(*it,boost::regex(jt->first))){
 				output.push_back(jt->second);
@@ -554,6 +590,10 @@ void Models::VeilAnnotation(const std::vector<std::string>& states, std::vector<
 	}
 }
 
+/**
+ * The result is a map from an regex to a string denoting the respective
+ * DNA structure element.
+ */
 boost::unordered_map<std::string,std::string> Models::createVeilMapping(){
 	boost::unordered_map<std::string, std::string> result;
 	std::stringstream ss;
@@ -607,6 +647,13 @@ boost::shared_ptr<HMM> Models::createVeilModel(){
 	return buildGeneModel(upstreamModel,startCodon,exonModel,donorModel,intronModel,acceptorModel,downstreamModel,polyASite);
 }
 
+/**
+ * The result is stored in the argument substitution. Substitution is a map
+ * containing as key an regex specifying the nodes on which the substitution
+ * is performed. The substition is the respective value element associated to
+ * the regex. The value itself is a map containing as keys the emission which
+ * shall be substituted by the value element.
+ */
 void Models::createAnnotatedSubstitution(boost::unordered_map<std::string, boost::unordered_map<std::string, std::string> >& substitution){
 	boost::unordered_map<std::string, std::string> substitutionExon;
 	boost::unordered_map<std::string, std::string> substitutionIntron;

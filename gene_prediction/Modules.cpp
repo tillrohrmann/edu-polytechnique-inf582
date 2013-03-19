@@ -36,10 +36,8 @@ void Modules::learnCompleteModel() {
 
 	boost::unordered_map<std::string,
 			boost::unordered_map<std::string, std::string> > substitution;
-	boost::unordered_map<std::string, boost::unordered_map<std::string, std::string> > inverseSubstitution;
-	std::string bases[] = { "A", "C", "G", "T" };
-	std::string prefixes[] = { "D", "U", "E", "I" };
-	std::stringstream ss;
+	boost::unordered_map<std::string,
+			boost::unordered_map<std::string, std::string> > inverseSubstitution;
 
 	Models::createInverseAnnotatedSubstitution(inverseSubstitution);
 	Models::createAnnotatedSubstitution(substitution);
@@ -52,9 +50,8 @@ void Modules::learnCompleteModel() {
 
 	database.extractAnnotatedSequences(trainingset);
 
-	std::vector<std::vector<std::string> >	smallset(trainingset.begin(), trainingset.begin()+20);
-
-	compiled = CrossValidation::crossValidation(compiled,smallset,0.01,1,10);
+	compiled = CrossValidation::crossValidation(compiled, trainingset, 0.01, 1,
+			114);
 
 	std::cout << compiled->toString() << std::endl;
 
@@ -64,7 +61,7 @@ void Modules::learnCompleteModel() {
 
 	std::ofstream os;
 
-	os.open(filename.c_str(),std::ios_base::out);
+	os.open(filename.c_str(), std::ios_base::out);
 
 	model->serialize(os);
 
@@ -184,11 +181,11 @@ void Modules::test3StateToyExample() {
 		compiled->simulate(30, output, states);
 		trainingSet.push_back(output);
 
-				std::cout << i << ":";
-				for(int j=0; j<output.size(); j++){
-					std::cout << output[j];
-				}
-				std::cout << std::endl;
+		std::cout << i << ":";
+		for (int j = 0; j < output.size(); j++) {
+			std::cout << output[j];
+		}
+		std::cout << std::endl;
 	}
 
 	learned->initializeRandom(3, emission_set);
@@ -252,7 +249,8 @@ void Modules::test3StateToyExample() {
 	newHMM->serialize(std::cout);
 }
 
-void Modules::evaluateModel(const std::string& hmmFilename){
+
+void Modules::evaluateModel(const std::string& hmmFilename) {
 	GeneDatabase database;
 	std::string dataFilename = "DNASequences.fasta";
 	std::string cdsFilename = "CDS.tbl";
@@ -262,29 +260,28 @@ void Modules::evaluateModel(const std::string& hmmFilename){
 	std::vector<std::vector<std::string> > sequences;
 	std::vector<std::vector<std::string> > annotations;
 
-
 	database.importFile(dataFilename);
 	database.importCDS(cdsFilename);
 
-	is.open(hmmFilename.c_str(),std::ios_base::in);
+	is.open(hmmFilename.c_str(), std::ios_base::in);
 
-	HMM::deserialize(is,hmm);
+	// read HMM
+	HMM::deserialize(is, hmm);
 
 	is.close();
 
 	hmm->compile(hmmCompiled);
 
-	database.extractSequencesAndAnnotations(sequences,annotations);
+	// get test data
+	database.extractSequencesAndAnnotations(sequences, annotations);
 
-	std::vector<std::vector<std::string> > smallSequences(sequences.begin(),sequences.begin()+20);;
-	std::vector<std::vector<std::string> > smallAnnotations(annotations.begin(),annotations.begin()+20);;
-
-	Analytics::AnalyticsResult result = Analytics::analyse(hmmCompiled,smallSequences,smallAnnotations);
+	Analytics::AnalyticsResult result = Analytics::analyse(hmmCompiled,
+			sequences, annotations);
 
 	std::cout << result << std::endl;
 }
 
-void Modules::learnAndEvaluateModel(const std::string& prefix){
+void Modules::learnAndEvaluateModel(const std::string& prefix) {
 	GeneDatabase database;
 	std::string dataFilename = "DNASequences.fasta";
 	std::string cdsFilename = "CDS.tbl";
@@ -296,9 +293,8 @@ void Modules::learnAndEvaluateModel(const std::string& prefix){
 
 	database.extractDatabaseEntries(entries);
 
-	std::vector<DatabaseEntry*> smallset(entries.begin(),entries.begin()+20);
-
 	hmm = Models::createVeilModel();
 
-	CrossValidation::modelLearning(prefix,hmm,entries,114,1,"Threshold",0.01,true);
+	CrossValidation::modelLearning(prefix, hmm, entries, 114, 1, "Threshold",
+			0.01, true);
 }

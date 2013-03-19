@@ -34,6 +34,7 @@ void GeneDatabase::importFile(const std::string& filename) {
 	while (!is.eof()) {
 		std::getline(is, line);
 
+		// read identifier of sequence
 		if (line[0] == '>') {
 			if (id != "") {
 				_entries.emplace(id, DatabaseEntry(id, buffer));
@@ -41,7 +42,9 @@ void GeneDatabase::importFile(const std::string& filename) {
 			}
 
 			id = line.substr(1);
-		} else {
+		}
+		// read sequence information
+		else {
 			for (int i = 0; i < line.size(); i++) {
 				ss.clear();
 				ss << line[i];
@@ -166,18 +169,20 @@ void GeneDatabase::extractDatabaseEntries(
 	}
 }
 
-void GeneDatabase::separateSet(const std::vector<DatabaseEntry* >& entries,std::vector<std::vector<std::string> >& sequences,
-			std::vector<std::vector<std::string> >&	testset, std::vector<std::vector<std::string> >& annotations,bool annotated
-			,int start,int end){
+void GeneDatabase::separateSet(const std::vector<DatabaseEntry*>& entries,
+		std::vector<std::vector<std::string> >& sequences,
+		std::vector<std::vector<std::string> >& testset,
+		std::vector<std::vector<std::string> >& annotations, bool annotated,
+		int start, int end) {
 
-	for(int i=0; i< entries.size(); i++){
-		if(i < start || i>=end){
-			if(annotated){
+	for (int i = 0; i < entries.size(); i++) {
+		if (i < start || i >= end) {
+			if (annotated) {
 				entries[i]->extractAnnotatedSequence(sequences);
-			}else{
+			} else {
 				entries[i]->extractSequence(sequences);
 			}
-		}else{
+		} else {
 			entries[i]->extractSequence(testset);
 			entries[i]->extractAnnotation(annotations);
 		}
