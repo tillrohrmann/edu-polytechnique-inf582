@@ -11,7 +11,7 @@
 
 int main(int argc, char** argv) {
 	// Learn complete model and start result files with "3"
-	Modules::learnAndEvaluateModel("3");
+	Modules::learnAndEvaluateModel();
 
 	return 0;
 }

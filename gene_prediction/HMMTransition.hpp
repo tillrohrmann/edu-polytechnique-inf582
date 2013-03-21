@@ -11,6 +11,10 @@
 #include <ostream>
 #include <istream>
 
+/**
+ * This class represents a transition of the HMM. Thus it contains the
+ * destination id and the transition probability.
+ */
 class HMMTransition{
 public:
 	double _probability;

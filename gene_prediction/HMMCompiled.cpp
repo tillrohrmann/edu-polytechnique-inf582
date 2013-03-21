@@ -135,6 +135,10 @@ bool HMMCompiled::hasConstantEmissionSet(int node) const {
 	return _constantEmissionSetNodes[node];
 }
 
+/**
+ * This functions adds the node node to this HMMCompiled and
+ * thus creates a new entry in the mapping.
+ */
 void HMMCompiled::addMapping(boost::shared_ptr<HMMNode> node) {
 	if (_node2Int.count(node) == 0) {
 		_constantTransitionNodes[_counter] = node->constantTransitions();
@@ -265,24 +269,6 @@ std::string HMMCompiled::toString() const {
 
 	ss << std::endl;
 
-//	ss << std::setw(7) << "  ";
-//	for(int i =0; i< _numberNodes;i++){
-//		ss << std::setw(7) <<  i;
-//	}
-//
-//	ss << std::endl;
-//
-//	for(int i=0; i< _numberNodes; i++){
-//		ss << std::setw(7) <<  i << " ";
-//
-//		for(int j =0; j< _numberNodes; j++){
-//			ss << std::setw(7) << std::setprecision(4) << getTransition(i,j);
-//		}
-//		ss << std::endl;
-//	}
-//
-//	ss << std::endl;
-
 	ss << "Emissions:" << std::endl;
 
 	for (int i = 0; i < _numberNodes; i++) {
@@ -326,6 +312,7 @@ void HMMCompiled::finishCompilation() {
 		incomingEdges[*it] = 0;
 	}
 
+	//calculate number incoming edges for every node
 	for (boost::unordered_set<int>::const_iterator it = _silentStates.begin();
 			it != _silentStates.end(); ++it) {
 		std::vector<int> children;
@@ -346,16 +333,22 @@ void HMMCompiled::finishCompilation() {
 		deps.emplace(*it, children);
 	}
 
+	// order states according to their incoming degree in increasing order
 	for (boost::unordered_set<int>::const_iterator it = _silentStates.begin();
 			it != _silentStates.end(); ++it) {
 		handle = heap.push(Pair<int>(incomingEdges[*it], *it));
 		mapping.emplace(*it, handle);
 	}
 
+	// pop successively the states from the heap. The idea is that the transition probabilities
+	// of a silent state can be calculated if all the probabilities of the incoming edges have
+	// been calculated. To make a long story short, we have to find a ordering of a DAG such that
+	// all nodes which have a transition into this node are ordered before the respective node.
 	while (!heap.empty()) {
 		Pair<int> pair = heap.top();
 		heap.pop();
 
+		// Graph contains a circle --> no order possible
 		if (pair._first != 0) {
 			throw std::invalid_argument("HMM contains silent states cycle.");
 		}
@@ -379,6 +372,9 @@ void HMMCompiled::finishCompilation() {
 	}
 }
 
+/**
+ * ln(x+y) = elnsum(ln(x),ln(y))
+ */
 double HMMCompiled::elnsum(double x, double y) {
 	if (x == -std::numeric_limits<double>::infinity()) {
 		return y;
@@ -411,8 +407,10 @@ double HMMCompiled::forward(const std::vector<std::string>& sequence) {
 		cur = temp;
 
 		for (int i = 0; i < _numberNodes; i++) {
+			// cur[i] = ln(0)
 			cur[i] = -std::numeric_limits<double>::infinity();
 			if (!isSilent(i)) {
+				// forward(i,t) = sum_{j=1}^{N} forward(j,t-1)*transition(j,i)*emission(i,sequence(i))
 				for (boost::unordered_map<int, double>::const_iterator jt =
 						_imapTransitions[i].begin();
 						jt != _imapTransitions[i].end(); ++jt) {
@@ -424,10 +422,12 @@ double HMMCompiled::forward(const std::vector<std::string>& sequence) {
 			}
 		}
 
+		// silent states
 		for (std::vector<int>::const_iterator order = _silentStateOrder.begin();
 				order != _silentStateOrder.end(); ++order) {
 			int node = *order;
 
+			// forward(i,t) = sum_{j=1}^{N} forward(j,t)*transition(j,i)
 			for (boost::unordered_map<int, double>::const_iterator jt =
 					_imapTransitions[node].begin();
 					jt != _imapTransitions[node].end(); ++jt) {
@@ -437,6 +437,7 @@ double HMMCompiled::forward(const std::vector<std::string>& sequence) {
 		}
 	}
 
+	// probability that the sequence was emitted by this model
 	for (int i = 0; i < _numberNodes; i++) {
 		result = elnsum(result, cur[i]);
 	}
@@ -444,6 +445,7 @@ double HMMCompiled::forward(const std::vector<std::string>& sequence) {
 	delete[] prev;
 	delete[] cur;
 
+	// log-space
 	return result;
 }
 
@@ -465,6 +467,7 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence) {
 		for (int i = 0; i < _numberNodes; i++) {
 			cur[i] = -std::numeric_limits<double>::infinity();
 			if (!isSilent(i)) {
+				// backward(i,t-1) = sum_{j=1}^{N} backward(j,t)*emission(j,sequence(t))*transition(i,j)
 				for (boost::unordered_map<int, double>::const_iterator jt =
 						_mapTransitions[i].begin();
 						jt != _mapTransitions[i].end(); ++jt) {
@@ -476,8 +479,10 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence) {
 			}
 		}
 
+		// silent states
 		for (int i = _silentStateOrder.size() - 1; i >= 0; i--) {
 			int node = _silentStateOrder[i];
+			// backward(i,t) = sum_{j=1}^{N} backward(j,t)*transition(i,j)
 			for (boost::unordered_map<int, double>::const_iterator jt =
 					_mapTransitions[node].begin();
 					jt != _mapTransitions[node].end(); ++jt) {
@@ -491,6 +496,7 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence) {
 	prev = cur;
 	cur = temp;
 
+	// multiply the emission probability of the first symbol
 	for (int i = 0; i < _numberNodes; i++) {
 		cur[i] = -std::numeric_limits<double>::infinity();
 		if (!isSilent(i)) {
@@ -507,6 +513,7 @@ double HMMCompiled::backward(const std::vector<std::string>& sequence) {
 		}
 	}
 
+	// probability that this sequence was emitted by this model
 	for (int i = 0; i < _numberNodes; i++) {
 		result = elnsum(result, cur[i] + getLogInitialDistribution(i));
 	}
@@ -554,6 +561,7 @@ void HMMCompiled::viterbi(const std::vector<std::string>& sequence,
 				}
 
 				cur[i] = maxProb + getLogEmission(i, *it);
+				// store best predecessor for i
 				backtrack[counter * _numberNodes + i] = maxPred;
 			}
 		}
@@ -589,6 +597,7 @@ void HMMCompiled::viterbi(const std::vector<std::string>& sequence,
 
 	stateSequence.push_back(maxPred);
 
+	// backtrack sequence
 	for (int i = counter - 1; i >= 0; i--) {
 		do {
 			stateSequence.push_back(backtrack[i * _numberNodes + maxPred]);
@@ -596,6 +605,7 @@ void HMMCompiled::viterbi(const std::vector<std::string>& sequence,
 		} while (isSilent(maxPred));
 	}
 
+	// reverse found backtracked sequence
 	std::reverse(stateSequence.begin(), stateSequence.end());
 
 	delete[] prev;
@@ -626,6 +636,7 @@ void HMMCompiled::internalBaumWelch(
 		}
 
 		for (int c = 1; c < it->size(); c++) {
+			// collect all possible outputs in _supersetEmissions for the later smoothing
 			if (initialRun)
 				_supersetEmissions.insert(it->at(c));
 
@@ -633,6 +644,7 @@ void HMMCompiled::internalBaumWelch(
 				forward[_numberNodes * c + i] =
 						-std::numeric_limits<double>::infinity();
 				if (!isSilent(i)) {
+					// forward(i,t) = sum_{j=1}^{N} forward(j,t-1)*transition(j,i)*emission(i,sequence(t))
 					for (boost::unordered_map<int, double>::const_iterator jt =
 							_imapTransitions[i].begin();
 							jt != _imapTransitions[i].end(); ++jt) {
@@ -662,6 +674,7 @@ void HMMCompiled::internalBaumWelch(
 			}
 		}
 
+		// probability of this sequence being emitted by this model
 		for (int i = 0; i < _numberNodes; i++) {
 			probWord = elnsum(probWord,
 					forward[i + _numberNodes * (it->size() - 1)]);
@@ -709,6 +722,7 @@ void HMMCompiled::internalBaumWelch(
 				backward[i + _numberNodes * c] =
 						-std::numeric_limits<double>::infinity();
 				if (!isSilent(i)) {
+					// backward(i,t-1) = sum_{j=1}^{N} backward(j,t)*transition(i,j)*emission(j,sequence(t))
 					for (boost::unordered_map<int, double>::const_iterator jt =
 							_mapTransitions[i].begin();
 							jt != _mapTransitions[i].end(); ++jt) {
@@ -753,6 +767,8 @@ void HMMCompiled::internalBaumWelch(
 														+ jt->first]);
 					}
 				} else {
+					//cTransitions[i][j] = sum_{t=1}^{L} forward(i,t)*backward(j,t+1)*transition(i,j)*
+					// emission(j,sequence(t+1))/Pr(sequence)
 					for (int t = 0; t < it->size() - 1; t++) {
 						numerator = elnsum(numerator,
 								forward[t * _numberNodes + i]
@@ -776,6 +792,8 @@ void HMMCompiled::internalBaumWelch(
 					temp[*jt] = -std::numeric_limits<double>::infinity();
 				}
 
+				// cEmission[i][symbol] = sum_{t=1}^{L} forward(i,t)*backward(i,t)/Pr(sequence)*
+				//	1(sequence(t)==symbol)
 				for (int t = 0; t < it->size(); t++) {
 					temp[it->at(t)] = elnsum(temp[it->at(t)],
 							forward[t * _numberNodes + i]
@@ -837,7 +855,7 @@ void HMMCompiled::baumWelch(
 		internalBaumWelch(trainingset, cTransitions, cEmissions, cInitial,
 				initialRun);
 
-		//smoothing of transitions
+		//smoothing of transitions by pseudo counts
 		for (int i = 0; i < _numberNodes; i++) {
 			for (boost::unordered_map<int, double>::iterator jt =
 					cTransitions[i].begin(); jt != cTransitions[i].end();
@@ -846,7 +864,7 @@ void HMMCompiled::baumWelch(
 			}
 		}
 
-		// smoothing by pseudo counts
+		// smoothing of emissions by pseudo counts
 		for (int i = 0; i < _numberNodes; i++) {
 			if (!hasConstantEmissionSet(i)) {
 				for (boost::unordered_set<std::string>::const_iterator it =
@@ -1000,6 +1018,7 @@ Analytics::AnalyticsResult HMMCompiled::baumWelch(boost::shared_ptr<HMM> hmm,
 	}
 
 	do {
+		// keep the best HMM (with respect to the analytics result/accuracy) found so far
 		chmm->copy(oldHMM);
 		oldValue = currentValue;
 		oldAnalytics = currentAnalytics;
@@ -1120,6 +1139,8 @@ Analytics::AnalyticsResult HMMCompiled::baumWelch(boost::shared_ptr<HMM> hmm,
 
 		initialRun = false;
 
+		// it the training set is annotated, then the HMMCompiled has to be translated
+		// to use the non-annotated emission symbols again for the analysis.
 		if (annotated) {
 			hmm->update(shared_from_this());
 			hmm->substituteEmissions(inverseSubstitution);

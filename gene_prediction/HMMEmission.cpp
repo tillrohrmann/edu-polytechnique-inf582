@@ -6,7 +6,6 @@
  */
 
 #include "HMMEmission.hpp"
-#include "Exceptions.hpp"
 #include <boost/regex.hpp>
 #include <sstream>
 #include <ostream>

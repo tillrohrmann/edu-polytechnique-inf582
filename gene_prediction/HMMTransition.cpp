@@ -8,7 +8,6 @@
 #include "HMMTransition.hpp"
 #include <boost/regex.hpp>
 #include <sstream>
-#include "Exceptions.hpp"
 
 HMMTransition::HMMTransition(int destination, double probability):
 	_probability(probability), _destination(destination){

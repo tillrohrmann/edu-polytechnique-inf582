@@ -10,6 +10,10 @@
 
 #include <string>
 
+/**
+ * This class represents an emission of a node. Thus it contains the emitted symbol
+ * and its probability.
+ */
 class HMMEmission{
 public:
 	double _probabiltiy;

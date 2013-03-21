@@ -11,7 +11,6 @@
 
 #include <boost/regex.hpp>
 
-#include "Exceptions.hpp"
 #include "HMMEmission.hpp"
 #include "HMMTransition.hpp"
 #include "HMMCompiled.hpp"
