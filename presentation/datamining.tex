@@ -1,0 +1,598 @@
+
+
+
+
+
+\documentclass{beamer}
+
+
+
+
+
+\usepackage{pgf}%,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{amsmath,amssymb}
+%\usepackage[utf8]{inputenc}
+\usepackage{colortbl}
+%\usepackage{ngerman}
+\usepackage{graphicx}
+%\usepackage{here}
+\usepackage{url}
+\usepackage{pstricks}
+%\usepackage{fancyvrb}
+\usepackage{xspace}
+\usepackage{multirow}
+\usepackage{eurosym}
+\usepackage{beamerthemeshadow}
+\beamersetuncovermixins{\opaqueness<1>{25}}{\opaqueness<2->{15}}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}  
+\usepackage[francais]{babel}
+
+% general
+%\newcommand{\quota}[1]{``#1''}
+\newcommand{\quota}[1]{\glqq{}#1\grqq{}}
+\definecolor{lightred}{rgb}{1,0.3,0.3}
+\definecolor{lightgreen}{rgb}{0.3,1,0.3}
+\definecolor{lightblue}{rgb}{0.5,0.5,1}
+\definecolor{darkred}{rgb}{0.7,0,0}
+%\newcommand{\redmathbox}[1]{\colorbox{lightred}{\ensuremath{#1}}}
+%\newcommand{\greenmathbox}[1]{\colorbox{lightgreen}{\ensuremath{#1}}}
+%\newcommand{\pseudomathbox}[1]{\setlength{\fboxrule}{0pt}\fbox{\ensuremath{#1}}\setlength{\fboxrule}{1pt}}
+
+\newcommand{\redbox}[1]{\colorbox{lightred}{#1}}
+\newcommand{\greenbox}[1]{\colorbox{lightgreen}{#1}}
+\newcommand{\bluebox}[1]{\colorbox{lightblue}{#1}}
+\newcommand{\yellowbox}[1]{\colorbox{yellow}{#1}}
+
+\setlength{\fboxrule}{1pt}
+
+
+%% Das Layout
+\setbeamertemplate{footline} %% Eine Fußzeile für die Slide-Nummern
+{%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.25\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{title in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.5\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}\insertshorttitle
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.25\paperwidth,ht=2.25ex,dp=1ex,center]{date inhead/foot}%
+    \insertframenumber{} / \inserttotalframenumber
+    \hspace*{2ex}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+%\usefonttheme[onlysmall]{structurebold} %% Schriftlayout
+\setbeamercovered{transparent}
+%\setbeamertemplate{navigation symbols}{} %% Abschalten der Navigation
+
+\title{Finding Genes With HMMs}
+\subtitle{INF 582 - Datamining}
+\author{Till Rohrmann, Damien Arnol}
+%\institute{SciEngines GmbH}
+\date{March 2013}
+
+% Gliederung bei Sektionsanfang
+ \AtBeginSection[]
+ {
+   %\logo{}
+   \begin{frame}
+     %\frametitle{Übersicht}
+     \tableofcontents[current,hideothersubsections,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
+   \end{frame}%\note{}
+ }
+
+% Gliederung bei Subsektionsanfang
+  \AtBeginSubsection[]
+  {
+    \logo{}
+    \begin{frame}
+      %\frametitle{Übersicht}
+      \tableofcontents[current,currentsubsection,subsectionstyle=show/shaded/hide,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
+    \end{frame}\note{}
+  }
+
+%% Gliederung bei Subsubsektionsanfang
+%  \AtBeginSubsubsection[]
+%  {
+%    \logo{}
+%    \begin{frame}
+%      %\frametitle{Übersicht}
+%      \tableofcontents[current,currentsubsection,subsectionstyle=show/shaded/hide,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
+%    \end{frame}\note{}
+%  }
+
+% ----------------------------------------------- BEGINNING OF THE DOCUMENT ----------------------------------------------- %
+%% Das Dokument
+\begin{document}
+
+\frame{
+	\titlepage
+}
+
+%\begin{frame}
+%\frametitle{Apper\c cu g\'en\'eral du projet}
+%\textbf{Objectif :}
+%\begin{itemize}
+%	\item Mod\'eliser la langue fran\c caise par un processus de Markov d'ordre $n$
+%	\item Calculer l'entropie par lettre de cette source markovienne pour diff\'erents ordres
+%	\item Impl\'ementer un g\'en\'erateur al\'eatoire de texte
+%\end{itemize}
+%
+%\textbf{D\'emarche : 3 phases}
+%\begin{itemize}
+%	\item Apprentissage : d\'etermination des probabilit\'es d'\'emission conditionnelles de cette source
+%	\item Calcul de l'entropie par lettre
+%	\item Restitution
+%\end{itemize}
+%
+%\textbf{R\'esultats}
+%\begin{itemize}
+%	\item Un programme fonctionnant correctement pour tout ordre
+%\end{itemize}
+%
+%\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Raison d'etre}
+\begin{figure}[h]
+			\centering
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/wtdv027274.jpg}<1>
+			\includegraphics[width=0.85\textwidth]{../picturesforthepresentation/DNAsequencingCost.jpg}<2>		
+		\end{figure}
+\end{frame}
+
+
+\frame{
+  \frametitle{Outline}
+  \tableofcontents[hideallsubsections]
+}
+
+
+\section{HMMs and implementation}
+\subsection{Description of the probabilistic model}
+
+\begin{frame}
+\frametitle{Description of the probabilistic model}
+\begin{columns}
+
+		\column{0.50\textwidth}
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM1.png}<1>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM2.png}<2>		
+		\end{figure}
+		
+		\column{0.50\textwidth}
+		\begin{block}{Transition Probabilities}<1>
+		%\vspace{0.1cm}
+			from state i to state j: $T_{ij}$\\
+		
+		\end{block}
+		\vspace{0.3cm}
+		\begin{block}{Emission Probabilities}<2>
+		%\vspace{0.1cm}
+			Emission of A being in state i: $E(A|i)$
+		\end{block}
+\end{columns}
+\end{frame}
+
+\subsection{Decoding a sequence of emitted states}
+
+\begin{frame}
+\frametitle{The Viterbi algorithm}
+
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi1.png}<1>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi2.png}<2>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi3.png}<3>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi4.png}<4>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi5.png}<5>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi6.png}<6>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi7.png}<7>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi8.png}<8>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi9.png}<9>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi10.png}<10>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi11.png}<11>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/Viterbi12.png}<12>			
+		\end{figure}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Formal writing}
+
+\begin{block}{Additional Notations}
+$(y_1...y_n)$ : sequence of bases to decode\\
+$S$ : space of the possible states\\
+$\pi_{k}$ : Probability of beginning in state k\\
+$V_{t,k}$ : probability of the best track ending in state k at step t
+\end{block}
+
+\begin{block}{Initialization}
+\begin{equation*}
+V_{1,k} = E(y_1|k)\times\pi_{k}
+\end{equation*}
+\end{block}
+
+\begin{block}{Recursion}
+\begin{equation*}
+\forall k\ V_{t,k} = E(y_t|k)\times\max_{x \in S}\big(T_{xk}\times V_{T,x}\big)
+\end{equation*}
+\begin{equation*}
+x_{T} = argmax_{x \in S}\big(V_{T,x}\big)
+\end{equation*}
+\end{block}
+
+\end{frame}
+
+\subsection{Learning process}
+
+\begin{frame}
+\frametitle{Learning process}
+%\begin{figure}[h]
+%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/baumwelch.png}
+%\end{figure}
+Use of the Baum-Welch algorithm with two possibilities :
+
+\vspace{0.5 cm}
+
+\begin{itemize}
+	\item Totally unsupervised learning
+	\item Use of the genome annotation  
+\end{itemize}
+
+
+\end{frame}
+
+\section{Biological applications}
+\subsection{Relevance of the previous simple model}
+
+\begin{frame}
+\frametitle{Exons and introns show different statistical patterns}
+\begin{itemize}
+	\item G-C content is higher in exons
+	\item Differences in the frequency of codon usage
+	\item Periodicity of certain bases due to codon usage
+\end{itemize}
+		
+	\vspace{0.5cm}
+	
+	\pause\begin{center}
+		\textbf{We need a three-stage model }
+	\end{center}
+\end{frame}
+
+\subsection{How to inject more biological information}
+\begin{frame}
+\frametitle{Weaknesses of the intron-exon model}
+	\begin{itemize}
+		\item No splicing sites recognition 
+		\item How to take into account a STOP codon ? 
+		\item Promoters and START codons ? 
+		\item Poly-A sites ?
+	\end{itemize}
+	
+	\vspace{0.5cm}
+	
+	\pause\begin{center}
+		\textbf{We should define more states without allowing all transitions}
+	\end{center}
+	
+\end{frame}
+
+\begin{frame}
+\frametitle{The implementation we chose}
+	\begin{figure}
+	\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/combinedHMM.png}
+	\end{figure}
+	
+	\begin{itemize}
+		\item 5' Splice sites are 9-stage models
+		\item 3' Splice sites are 5-stage models
+		\item Poly-A sites are 6-stage models 
+	\end{itemize}
+	
+	\pause\begin{center}
+		\textbf{The different several-stages models work like autonomous HMMs}
+	\end{center}
+	
+\end{frame}
+
+\begin{frame}
+\frametitle{Explanation of the multiple-stage models}
+	\begin{figure}
+	\includegraphics[width=0.9\textwidth]{../picturesforthepresentation/Stages_viterbi.png}
+	\end{figure}
+	
+%	\begin{itemize}
+%		\item 5' Splice sites are 9-stage models
+%		\item 3' Splice sites are 5-stage models
+%		\item Poly-A sites are 6-stage models 
+%	\end{itemize}
+	
+%	\pause\begin{center}
+%		\textbf{the different several-stages models work like autonomous HMMs}
+%	\end{center}
+	
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Automata Representation}
+	\begin{figure}
+	\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/exon_auto.png}
+	\end{figure}
+	\begin{figure}
+	\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/donnor_auto.png}
+	\end{figure}
+	\pause\begin{center}
+		\textbf{The donnor model is only a chain}
+	\end{center}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Case of the Poly-A site model}
+	\begin{figure}
+	\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/PolyA.png}
+	\end{figure}
+	
+	\textbf{A concensus sequence : A A A T A A}
+	
+	\begin{itemize}
+		\item A six-stage Markov chain
+		\item One emission possibility of probability one for each stage 
+		\item Needs almost no training 
+	\end{itemize}
+	
+	\textbf{Start and Stop codon are similar cases}
+	
+	
+\end{frame}
+\section{Program}
+
+\section{Results}
+
+\subsection{What tools to assess the quality of the results ?}
+
+\begin{frame}
+\frametitle{Sensitivity and Specificity}
+
+	\textbf{Sensitivity} : Percentage of correct predicted coding bases\\
+	\vspace{1 cm}
+	\textbf{Specificity} : Percentage of predicted whole exons (introns) that exactly matched a true exon(intron)
+
+\end{frame}
+
+\subsection{Overview of the results}
+
+\begin{frame}
+\frametitle{Non annotated learning}
+\begin{columns}
+
+		\column{0.50\textwidth}
+		\begin{scriptsize}
+		\begin{table}[h!]
+		
+		\begin{tabular}{|c|c|c|c|c|}
+		
+			\hline
+				&In sensitivity	& In specificity\\	
+			\hline
+				Testset 1	& 0.693774	& 0.681791\\
+			\hline
+				Testset 2	& 0.663321	& 0.664126\\
+			\hline
+				Testset 3	& 0.664092	& 0.720411\\
+			\hline
+				Testset 4	& 0.637952	& 0.697138\\
+			\hline
+				Testset 5	& 0.674304	& 0.730396\\
+			\hline
+				Avg		& 0.6666886	& 0.6987724\\
+			\hline	
+			
+					
+		\end{tabular}
+		\vspace{0.5 cm}
+		
+		\begin{tabular}{|c|c|c|c|c|}
+		
+			\hline
+				& Ex sensitivity	& Ex specificity\\
+			\hline
+				Testset 1& 0.294624	& 0.243011\\
+			\hline
+				Testset 2	& 0.294231	& 0.259615	\\
+			\hline
+				Testset 3	& 0.315596	& 0.275229\\
+			\hline
+				Testset 4	& 0.402262	& 0.357027\\
+			\hline
+				Testset 5	& 0.314		& 0.272\\
+			\hline
+				Avg		& 0.3241426	& 0.2813764\\
+			\hline	
+			
+					
+		\end{tabular}
+		
+		%\caption{Exons}
+		\end{table}
+		
+
+		\end{scriptsize}
+		
+		\column{0.50\textwidth}
+		
+		\begin{itemize}
+
+			\item Convergence in 39 iterations on average
+
+		
+		\item Results comparable with litterature
+		
+		\end{itemize}
+		\vspace{0.5 cm}
+		 
+		 \centering\textbf{How to improve ? Supervised learning}
+\end{columns}
+
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Annotated learning}
+\begin{columns}
+
+		\column{0.50\textwidth}
+		\begin{scriptsize}
+		\begin{table}[h!]
+		
+		\begin{tabular}{|c|c|c|c|c|}
+		
+			\hline
+				&In sensitivity	& In specificity\\	
+			\hline
+				Testset 1	& 0.891234	& 0.743971\\
+			\hline
+				Testset 2	& 0.888242	& 0.723441\\
+			\hline
+				Testset 3	& 0.886976	& 0.791392\\
+			\hline
+				Testset 4	& 0.889267	& 0.745932\\
+			\hline
+				Testset 5	& 0.896504	& 0.81004\\
+			\hline
+				Avg		& 0.8904446	& 0.7629552\\
+			\hline	
+			
+					
+		\end{tabular}
+	
+		\vspace{0.5 cm}
+		
+		\begin{tabular}{|c|c|c|c|c|}
+		
+			\hline
+				& Ex sensitivity	& Ex specificity\\
+			\hline
+				Testset 1 & 0.550538	& 0.539785\\
+			\hline
+				Testset 2	& 0.540385	& 0.530769	\\
+			\hline
+				Testset 3	& 0.588991	& 0.581651\\
+			\hline
+				Testset 4	& 0.621971	& 0.613893\\
+			\hline
+				Testset 5	& 0.586		& 0.586\\
+			\hline
+				Avg		& 0.577577	& 0.5704196\\
+			\hline	
+			
+					
+		\end{tabular}
+		
+		%\caption{Exons}
+		\end{table}
+		
+		\end{scriptsize}
+		
+		\column{0.50\textwidth}
+		%\begin{block}{With non-annotated leaning}<1>
+		
+		\begin{itemize}
+			\item Convergence in 18 iterations on average
+			\item Results comparable with litterature
+		 \end{itemize}
+		 
+		 \vspace{0.5 cm}
+		 
+		 \centering\textbf{Much better accuracy}
+\end{columns}
+\end{frame}
+
+\section*{}
+\begin{frame}
+\frametitle{Conclusion}
+How to analyze the huge quantity of data provided by high-throughput sequencing ? 
+
+\begin{itemize}
+		\item Statistical models
+		\item Artificial Intelligence and self-trained models
+		\item Injection of biological informations 
+		 \end{itemize}
+		 
+		 \vspace{0.5 cm}
+		 
+		 \pause \begin{center}\textbf{Another way of injecting biological information : pair hidden Markovmodel for comparative gene finding (Homology)}\end{center}
+\end{frame}
+
+\begin{frame}[allowframebreaks]
+  \frametitle<presentation>{Bibliography}    
+  \begin{thebibliography}{10}   
+  \beamertemplatearticlebibitems
+  \bibitem{PFMRL}
+  J.~HENDERSON, S.~SALZBERG, K.~FASMAN
+    \newblock Finding Genes in DNA with a Hidden Markov Model, 2007
+  %\beamertemplatebookbibitems
+  %\bibitem{PRML}
+    %C.M.~Bishop
+    %\newblock Pattern Recognition and Machine Learning, 645--646, 2006.
+   \beamertemplatearticlebibitems
+   \bibitem{BayesianFiltering}
+   	W.~Majoros, M.~Pertea, S.~Salzberg
+   	\newblock Efficient implementation of a generalized pair hidden Markovmodel for comparative gene finding, 2005
+   \beamertemplatearticlebibitems
+   \bibitem{LocalizationLandmarkTracking}
+   	L.~Stein
+   	\newblock Genome Annotation: From sequence to biology, 2001
+   	\beamertemplatearticlebibitems
+   \bibitem{LocalizationLandmarkTracking}
+   	B.~Yoon
+   	\newblock Hidden Markov Models and their Applications in Biological SequenceAnalysis, 2009
+	\bibitem{LocalizationLandmarkTracking}
+   	S.~Maji, D.~Garg  	
+   	\newblock Progress in Gene Prediction: Principles and Challenges, 2013
+   	\bibitem{LocalizationLandmarkTracking}
+   	R.~Sleator 	
+   	\newblock An overview of the current status of eukaryote gene prediction strategies, 2010
+   	
+   	\bibitem{LocalizationLandmarkTracking}
+   	A.~Lomsadze, V.~Ter-Hovhannisyan, Y.~Chernoff, M.~Borodovsky
+   	\newblock Gene identification in novel eukaryotic genomes byself-training algorithm, 2005
+
+\bibitem{LocalizationLandmarkTracking}
+   	R.~Azad, M.~Borodovsky
+   	\newblock Probabilistic methods of identifying genes in prokaryotic genomes: Connections to the HMM theory, 2004
+   	
+   	\bibitem{LocalizationLandmarkTracking}
+   	M.~Zhang
+   	\newblock Computational prediction of eucaryotic protein-coding genes, 2002
+   	
+   		\bibitem{LocalizationLandmarkTracking}
+   	C.~Burge, S.~Karlin
+   	\newblock Prediction of complete gene structures in human genomic DNA   	
+  \end{thebibliography}
+\end{frame}
+
+
+%%in part 2 give an example of a chain to explain states 
+
+
+% results : methods of deciding accuracy etc 
+
+
+% mettre en forme tableau 
+
+
+
+
+\end{document}
