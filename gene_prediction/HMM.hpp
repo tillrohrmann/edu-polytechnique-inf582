@@ -113,6 +113,7 @@ public:
 	static void deserialize(std::istream& is, boost::shared_ptr<HMM> hmm);
 
 	int size() const;
+	int numTransitions() const;
 	int shallowSize() const;
 
 	/**

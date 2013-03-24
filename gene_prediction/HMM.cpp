@@ -311,6 +311,16 @@ int HMM::size() const {
 	return result;
 }
 
+int HMM::numTransitions() const{
+	int result = 0;
+
+	for(boost::unordered_map<int,ptrHMMNode>::const_iterator it = _nodes.begin(); it != _nodes.end(); ++it){
+		result += it->second->getTransition().size();
+	}
+
+	return result;
+}
+
 int HMM::shallowSize() const {
 	int result = 0;
 

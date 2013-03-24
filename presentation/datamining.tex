@@ -3,34 +3,27 @@
 
 
 
-\documentclass{beamer}
+\documentclass{beamer}[12pt]
 
 
 
 
-
-\usepackage{pgf}%,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage[utf8]{inputenc}
+\usepackage{pgf}
 \usepackage{amsmath,amssymb}
-%\usepackage[utf8]{inputenc}
 \usepackage{colortbl}
-%\usepackage{ngerman}
 \usepackage{graphicx}
-%\usepackage{here}
 \usepackage{url}
 \usepackage{pstricks}
-%\usepackage{fancyvrb}
 \usepackage{xspace}
 \usepackage{multirow}
 \usepackage{eurosym}
 \usepackage{beamerthemeshadow}
 \beamersetuncovermixins{\opaqueness<1>{25}}{\opaqueness<2->{15}}
 
-\usepackage[latin1]{inputenc}
 \usepackage[T1]{fontenc}  
 \usepackage[francais]{babel}
 
-% general
-%\newcommand{\quota}[1]{``#1''}
 \newcommand{\quota}[1]{\glqq{}#1\grqq{}}
 \definecolor{lightred}{rgb}{1,0.3,0.3}
 \definecolor{lightgreen}{rgb}{0.3,1,0.3}
@@ -68,41 +61,11 @@
 \setbeamercovered{transparent}
 %\setbeamertemplate{navigation symbols}{} %% Abschalten der Navigation
 
-\title{Finding Genes With HMMs}
+\title{Gene prediction with hidden Markov models}
 \subtitle{INF 582 - Datamining}
-\author{Till Rohrmann, Damien Arnol}
-%\institute{SciEngines GmbH}
-\date{March 2013}
-
-% Gliederung bei Sektionsanfang
- \AtBeginSection[]
- {
-   %\logo{}
-   \begin{frame}
-     %\frametitle{Übersicht}
-     \tableofcontents[current,hideothersubsections,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
-   \end{frame}%\note{}
- }
-
-% Gliederung bei Subsektionsanfang
-  \AtBeginSubsection[]
-  {
-    \logo{}
-    \begin{frame}
-      %\frametitle{Übersicht}
-      \tableofcontents[current,currentsubsection,subsectionstyle=show/shaded/hide,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
-    \end{frame}\note{}
-  }
-
-%% Gliederung bei Subsubsektionsanfang
-%  \AtBeginSubsubsection[]
-%  {
-%    \logo{}
-%    \begin{frame}
-%      %\frametitle{Übersicht}
-%      \tableofcontents[current,currentsubsection,subsectionstyle=show/shaded/hide,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
-%    \end{frame}\note{}
-%  }
+\author[T. Rohrmann \& D. Arnol]{Till Rohrmann \& Damien Arnol}
+\institute{École Polytechnique}
+\date{\today}
 
 % ----------------------------------------------- BEGINNING OF THE DOCUMENT ----------------------------------------------- %
 %% Das Dokument
@@ -112,38 +75,15 @@
 	\titlepage
 }
 
-%\begin{frame}
-%\frametitle{Apper\c cu g\'en\'eral du projet}
-%\textbf{Objectif :}
-%\begin{itemize}
-%	\item Mod\'eliser la langue fran\c caise par un processus de Markov d'ordre $n$
-%	\item Calculer l'entropie par lettre de cette source markovienne pour diff\'erents ordres
-%	\item Impl\'ementer un g\'en\'erateur al\'eatoire de texte
-%\end{itemize}
-%
-%\textbf{D\'emarche : 3 phases}
-%\begin{itemize}
-%	\item Apprentissage : d\'etermination des probabilit\'es d'\'emission conditionnelles de cette source
-%	\item Calcul de l'entropie par lettre
-%	\item Restitution
-%\end{itemize}
-%
-%\textbf{R\'esultats}
-%\begin{itemize}
-%	\item Un programme fonctionnant correctement pour tout ordre
-%\end{itemize}
-%
-%\end{frame}
-
 
 
 \begin{frame}
-\frametitle{Raison d'etre}
-\begin{figure}[h]
-			\centering
-			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/wtdv027274.jpg}<1>
-			\includegraphics[width=0.85\textwidth]{../picturesforthepresentation/DNAsequencingCost.jpg}<2>		
-		\end{figure}
+\frametitle{Motivation}
+	\begin{figure}[h]
+		\centering
+		%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/wtdv027274.jpg}<1>
+		%\includegraphics[width=0.85\textwidth]{../picturesforthepresentation/DNAsequencingCost.jpg}<2>		
+	\end{figure}
 \end{frame}
 
 
@@ -153,7 +93,7 @@
 }
 
 
-\section{HMMs and implementation}
+\section{HMMs}
 \subsection{Description of the probabilistic model}
 
 \begin{frame}
@@ -163,18 +103,18 @@
 		\column{0.50\textwidth}
 		\begin{figure}[h]
 			\centering
-			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM1.png}<1>
-			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM2.png}<2>		
+			%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM1.png}<1>
+			%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM2.png}<2>		
 		\end{figure}
 		
 		\column{0.50\textwidth}
-		\begin{block}{Transition Probabilities}<1>
+		\begin{block}{Transition probabilities}<1->
 		%\vspace{0.1cm}
-			from state i to state j: $T_{ij}$\\
+			Transition from state i to state j: $T_{ij}$\\
 		
 		\end{block}
 		\vspace{0.3cm}
-		\begin{block}{Emission Probabilities}<2>
+		\begin{block}{Emission probabilities}<2>
 		%\vspace{0.1cm}
 			Emission of A being in state i: $E(A|i)$
 		\end{block}
@@ -208,11 +148,13 @@
 \begin{frame}
 \frametitle{Formal writing}
 
-\begin{block}{Additional Notations}
-$(y_1...y_n)$ : sequence of bases to decode\\
-$S$ : space of the possible states\\
-$\pi_{k}$ : Probability of beginning in state k\\
-$V_{t,k}$ : probability of the best track ending in state k at step t
+\begin{block}{Additional notations}
+	\begin{tabular}{l@{\hspace{0.1em}}c@{\hspace{0.5em}}l@{\hspace{0.5em}}}
+		$(y_1...y_n)$ &:& Sequence of bases to decode\\
+		$S$ &:& Space of the possible states\\
+		$\pi_{k}$ &:& Probability of beginning in state k\\
+		$V_{t,k}$ &:& Probability of the best track ending in state k at step t
+	\end{tabular}
 \end{block}
 
 \begin{block}{Initialization}
@@ -232,23 +174,30 @@ x_{T} = argmax_{x \in S}\big(V_{T,x}\big)
 
 \end{frame}
 
-\subsection{Learning process}
+\subsection{Learning algorithm}
 
 \begin{frame}
-\frametitle{Learning process}
+\frametitle{Learning algorithm}
 %\begin{figure}[h]
 %\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/baumwelch.png}
 %\end{figure}
-Use of the Baum-Welch algorithm with two possibilities :
-
-\vspace{0.5 cm}
-
-\begin{itemize}
-	\item Totally unsupervised learning
-	\item Use of the genome annotation  
-\end{itemize}
-
-
+	\begin{itemize}
+		\item Baum-Welch learning algorithm
+		\item Tweak: Annotate sequence with structure information
+	\end{itemize}
+	\begin{figure}
+		\includegraphics[height=1.5cm]{../picturesforthepresentation/annotation.png}
+	\end{figure}
+	\begin{itemize}
+		\item Automatic alignment
+	\end{itemize}
+	\begin{block}{Termination criteria}
+		\begin{itemize}
+			\item Probability change threshold
+			\item Prediction accuracy
+			\item Number iterations
+		\end{itemize}
+	\end{block}
 \end{frame}
 
 \section{Biological applications}
@@ -288,19 +237,20 @@ Use of the Baum-Welch algorithm with two possibilities :
 \end{frame}
 
 \begin{frame}
-\frametitle{The implementation we chose}
+\frametitle{The model}
 	\begin{figure}
 	\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/combinedHMM.png}
 	\end{figure}
 	
 	\begin{itemize}
-		\item 5' Splice sites are 9-stage models
-		\item 3' Splice sites are 5-stage models
-		\item Poly-A sites are 6-stage models 
+		\item $\#$States=$94$, $\#$Transitions=$218$
+		\item ?? 5' Splice sites are 9-stage models
+		\item ?? 3' Splice sites are 15-stage models
+		\item ?? Poly-A sites are 6-stage models
 	\end{itemize}
 	
 	\pause\begin{center}
-		\textbf{The different several-stages models work like autonomous HMMs}
+		\textbf{The different models work like autonomous HMMs}
 	\end{center}
 	
 \end{frame}
@@ -308,7 +258,7 @@ Use of the Baum-Welch algorithm with two possibilities :
 \begin{frame}
 \frametitle{Explanation of the multiple-stage models}
 	\begin{figure}
-	\includegraphics[width=0.9\textwidth]{../picturesforthepresentation/Stages_viterbi.png}
+		%\includegraphics[width=0.9\textwidth]{../picturesforthepresentation/Stages_viterbi.png}
 	\end{figure}
 	
 %	\begin{itemize}
@@ -325,12 +275,12 @@ Use of the Baum-Welch algorithm with two possibilities :
 
 
 \begin{frame}
-\frametitle{Automata Representation}
+\frametitle{Automaton Representation}
 	\begin{figure}
-	\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/exon_auto.png}
+		%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/exon_auto.png}
 	\end{figure}
 	\begin{figure}
-	\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/donnor_auto.png}
+		%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/donnor_auto.png}
 	\end{figure}
 	\pause\begin{center}
 		\textbf{The donnor model is only a chain}
@@ -339,9 +289,9 @@ Use of the Baum-Welch algorithm with two possibilities :
 
 
 \begin{frame}
-\frametitle{Case of the Poly-A site model}
+\frametitle{Additional structure information: The Poly-A site model}
 	\begin{figure}
-	\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/PolyA.png}
+		%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/PolyA.png}
 	\end{figure}
 	
 	\textbf{A concensus sequence : A A A T A A}
@@ -352,23 +302,120 @@ Use of the Baum-Welch algorithm with two possibilities :
 		\item Needs almost no training 
 	\end{itemize}
 	
-	\textbf{Start and Stop codon are similar cases}
-	
-	
+	\textbf{Start and Stop codon behave similar}
 \end{frame}
-\section{Program}
-
-\section{Results}
-
-\subsection{What tools to assess the quality of the results ?}
 
 \begin{frame}
-\frametitle{Sensitivity and Specificity}
+	\frametitle{Model limitations}
+	\begin{columns}
+		\begin{column}{6.5cm}
+			Assumptions
+			\begin{enumerate}
+				\item Exon starts with a start codon
+				\item Introns always flanked by exons
+				\item Sequences contain exactly one gene
+				\item Minimum length of a coding exon is 7
+			\end{enumerate}
+		\end{column}
+		\begin{column}{4.5cm}
+			\includegraphics[width=4cm]{../picturesforthepresentation/restrictions.jpg}
+		\end{column}
+	\end{columns}
+\end{frame}
 
-	\textbf{Sensitivity} : Percentage of correct predicted coding bases\\
-	\vspace{1 cm}
-	\textbf{Specificity} : Percentage of predicted whole exons (introns) that exactly matched a true exon(intron)
+\section{Implementation}
 
+\begin{frame}
+	\frametitle{General properties}
+	\begin{columns}
+		\begin{column}{6cm}
+			\begin{itemize}
+				\item General HMM framework
+				\item Backward-, forward-, Viterbi and Baum-Welch Algorithm
+				\item Support of silent states
+				\item Persistency
+			\end{itemize}
+		\end{column}
+		\begin{column}{5cm}
+			\includegraphics[width=4.5cm]{../picturesforthepresentation/features.jpg}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Log-space transformation}
+	\begin{itemize}
+		\item Long sequences entail small probabilities $\Rightarrow$ Numerical instability and cancellation
+		\item Solution: Logarithm transformation
+	\end{itemize}
+	\begin{block}{Products}
+		\begin{displaymath}
+			\log(a*b) = \log(a)+\log(b)
+		\end{displaymath}
+	\end{block}
+	
+	\begin{block}{Sums}
+		\begin{displaymath}
+			\log(a+b) = \log(a) + \log\left(1 + \exp\left(\log(a)-\log(b)\right)\right)
+		\end{displaymath}
+	\end{block}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Sum formula derivation}
+	
+	\begin{eqnarray*}
+		\log(a+b) &=& \log\left(a(1+\frac{b}{a}) \right)\\
+			&=& \log(a) + \log(1+\frac{b}{a})\\
+			&=& \log(a) + \log(1+\exp\left( \log(b) - \log(a) \right))
+	\end{eqnarray*}
+	\begin{itemize}
+		\item with $a>b$
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Model sparseness}
+	\begin{columns}
+		\begin{column}{6.5cm}
+			\begin{itemize}
+				\item Complexity of naive Baum-Welch $O(N\cdot K^2)$, $N$ length of sequence, $K$ number of states
+				\item Too slow for given dataset
+				\item Transition matrix sparse
+				\item Average $\#$transitions$\approx 2$
+				\item For our model: Linear time complexity in states $O(N\cdot K)$
+			\end{itemize}
+		\end{column}
+		\begin{column}{4.5cm}
+			\begin{figure}
+				\includegraphics[width=4cm]{../picturesforthepresentation/sparse.png}
+			\end{figure}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+\section{Results}
+\subsection{Database}
+\begin{frame}
+	\frametitle{Database}
+	\begin{itemize}
+		\item Created by Burset and Guigo (1996) "Evaluation of gene structure prediction programs."
+		\item Selected sequences from GenBank
+		\item Sequences fulfill assumptions
+		\item 570 vertebrate sequences, 2649 exons and 2079 introns
+		\item Total size of $2.9$MB
+	\end{itemize}
+\end{frame}
+
+\subsection{Evaluation criteria}
+\begin{frame}
+\frametitle{Evaluation criteria}
+	\begin{description}
+		\item[Nucleotide sensitivity] Percentage of correctly labeled intron and exon bases
+		\item[Nucleotide specificity] Percentage of correctly labeled exon bases
+		\item[Exon sensitivity] Percentage of exons whose start and ending region has been correctly predicted
+		\item[Exon specificity] Percentage of whole exons which are predicted exactly
+	\end{description}
 \end{frame}
 
 \subsection{Overview of the results}
@@ -384,17 +431,17 @@ Use of the Baum-Welch algorithm with two possibilities :
 		\begin{tabular}{|c|c|c|c|c|}
 		
 			\hline
-				&In sensitivity	& In specificity\\	
+				&Nucleotide sn	& Nucleotide sp\\	
 			\hline
-				Testset 1	& 0.693774	& 0.681791\\
+				Test set 1	& 0.693774	& 0.681791\\
 			\hline
-				Testset 2	& 0.663321	& 0.664126\\
+				Test set 2	& 0.663321	& 0.664126\\
 			\hline
-				Testset 3	& 0.664092	& 0.720411\\
+				Test set 3	& 0.664092	& 0.720411\\
 			\hline
-				Testset 4	& 0.637952	& 0.697138\\
+				Test set 4	& 0.637952	& 0.697138\\
 			\hline
-				Testset 5	& 0.674304	& 0.730396\\
+				Test set 5	& 0.674304	& 0.730396\\
 			\hline
 				Avg		& 0.6666886	& 0.6987724\\
 			\hline	
@@ -406,17 +453,17 @@ Use of the Baum-Welch algorithm with two possibilities :
 		\begin{tabular}{|c|c|c|c|c|}
 		
 			\hline
-				& Ex sensitivity	& Ex specificity\\
+				& Exon sn	& Exon sp\\
 			\hline
-				Testset 1& 0.294624	& 0.243011\\
+				Test set 1& 0.294624	& 0.243011\\
 			\hline
-				Testset 2	& 0.294231	& 0.259615	\\
+				Test set 2	& 0.294231	& 0.259615	\\
 			\hline
-				Testset 3	& 0.315596	& 0.275229\\
+				Test set 3	& 0.315596	& 0.275229\\
 			\hline
-				Testset 4	& 0.402262	& 0.357027\\
+				Test set 4	& 0.402262	& 0.357027\\
 			\hline
-				Testset 5	& 0.314		& 0.272\\
+				Test set 5	& 0.314		& 0.272\\
 			\hline
 				Avg		& 0.3241426	& 0.2813764\\
 			\hline	
@@ -433,16 +480,14 @@ Use of the Baum-Welch algorithm with two possibilities :
 		\column{0.50\textwidth}
 		
 		\begin{itemize}
-
-			\item Convergence in 39 iterations on average
-
-		
-		\item Results comparable with litterature
-		
+			\item Test set size=$114$
+			\item $3$ tries per test set
+			\item Termination criterium: Threshold $\sigma=0.01$
+			\item Convergence after 39 iterations on average
 		\end{itemize}
 		\vspace{0.5 cm}
 		 
-		 \centering\textbf{How to improve ? Supervised learning}
+		 \centering\textbf{How to improve ? Partially supervised learning}
 \end{columns}
 
 
@@ -459,17 +504,17 @@ Use of the Baum-Welch algorithm with two possibilities :
 		\begin{tabular}{|c|c|c|c|c|}
 		
 			\hline
-				&In sensitivity	& In specificity\\	
+				&Nucleotide sn	& Nucleotide sp\\	
 			\hline
-				Testset 1	& 0.891234	& 0.743971\\
+				Test set 1	& 0.891234	& 0.743971\\
 			\hline
-				Testset 2	& 0.888242	& 0.723441\\
+				Test set 2	& 0.888242	& 0.723441\\
 			\hline
-				Testset 3	& 0.886976	& 0.791392\\
+				Test set 3	& 0.886976	& 0.791392\\
 			\hline
-				Testset 4	& 0.889267	& 0.745932\\
+				Test set 4	& 0.889267	& 0.745932\\
 			\hline
-				Testset 5	& 0.896504	& 0.81004\\
+				Test set 5	& 0.896504	& 0.81004\\
 			\hline
 				Avg		& 0.8904446	& 0.7629552\\
 			\hline	
@@ -482,17 +527,17 @@ Use of the Baum-Welch algorithm with two possibilities :
 		\begin{tabular}{|c|c|c|c|c|}
 		
 			\hline
-				& Ex sensitivity	& Ex specificity\\
+				& Exon sn	& Exon sp\\
 			\hline
-				Testset 1 & 0.550538	& 0.539785\\
+				Test set 1 & 0.550538	& 0.539785\\
 			\hline
-				Testset 2	& 0.540385	& 0.530769	\\
+				Test set 2	& 0.540385	& 0.530769	\\
 			\hline
-				Testset 3	& 0.588991	& 0.581651\\
+				Test set 3	& 0.588991	& 0.581651\\
 			\hline
-				Testset 4	& 0.621971	& 0.613893\\
+				Test set 4	& 0.621971	& 0.613893\\
 			\hline
-				Testset 5	& 0.586		& 0.586\\
+				Test set 5	& 0.586		& 0.586\\
 			\hline
 				Avg		& 0.577577	& 0.5704196\\
 			\hline	
@@ -509,8 +554,10 @@ Use of the Baum-Welch algorithm with two possibilities :
 		%\begin{block}{With non-annotated leaning}<1>
 		
 		\begin{itemize}
-			\item Convergence in 18 iterations on average
-			\item Results comparable with litterature
+			\item Test set size=$114$
+			\item Termination criterium: Threshold $\sigma=0.01$
+			\item Convergence after 18 iterations on average
+			\item Results comparable with literature
 		 \end{itemize}
 		 
 		 \vspace{0.5 cm}
@@ -520,79 +567,70 @@ Use of the Baum-Welch algorithm with two possibilities :
 \end{frame}
 
 \section*{}
+\subsection{Conclusion}
+
 \begin{frame}
 \frametitle{Conclusion}
 How to analyze the huge quantity of data provided by high-throughput sequencing ? 
 
 \begin{itemize}
 		\item Statistical models
-		\item Artificial Intelligence and self-trained models
+		\item Artificial intelligence and self-trained models
 		\item Injection of biological informations 
 		 \end{itemize}
 		 
 		 \vspace{0.5 cm}
 		 
-		 \pause \begin{center}\textbf{Another way of injecting biological information : pair hidden Markovmodel for comparative gene finding (Homology)}\end{center}
+		 \pause \begin{center}\textbf{Another way of injecting biological information : pair hidden Markov
+model for comparative gene finding (Homology)}\end{center}
 \end{frame}
 
 \begin{frame}[allowframebreaks]
   \frametitle<presentation>{Bibliography}    
   \begin{thebibliography}{10}   
-  \beamertemplatearticlebibitems
-  \bibitem{PFMRL}
-  J.~HENDERSON, S.~SALZBERG, K.~FASMAN
-    \newblock Finding Genes in DNA with a Hidden Markov Model, 2007
-  %\beamertemplatebookbibitems
-  %\bibitem{PRML}
-    %C.M.~Bishop
-    %\newblock Pattern Recognition and Machine Learning, 645--646, 2006.
-   \beamertemplatearticlebibitems
-   \bibitem{BayesianFiltering}
-   	W.~Majoros, M.~Pertea, S.~Salzberg
-   	\newblock Efficient implementation of a generalized pair hidden Markovmodel for comparative gene finding, 2005
-   \beamertemplatearticlebibitems
-   \bibitem{LocalizationLandmarkTracking}
-   	L.~Stein
-   	\newblock Genome Annotation: From sequence to biology, 2001
-   	\beamertemplatearticlebibitems
-   \bibitem{LocalizationLandmarkTracking}
-   	B.~Yoon
-   	\newblock Hidden Markov Models and their Applications in Biological SequenceAnalysis, 2009
-	\bibitem{LocalizationLandmarkTracking}
-   	S.~Maji, D.~Garg  	
-   	\newblock Progress in Gene Prediction: Principles and Challenges, 2013
-   	\bibitem{LocalizationLandmarkTracking}
-   	R.~Sleator 	
-   	\newblock An overview of the current status of eukaryote gene prediction strategies, 2010
-   	
-   	\bibitem{LocalizationLandmarkTracking}
-   	A.~Lomsadze, V.~Ter-Hovhannisyan, Y.~Chernoff, M.~Borodovsky
-   	\newblock Gene identification in novel eukaryotic genomes byself-training algorithm, 2005
+	\beamertemplatearticlebibitems
+	\bibitem{}
+	J.~Henderson, S.~Salzberg, K.~Fasman
+	\newblock Finding Genes in DNA with a Hidden Markov Model, 1997
+	
+	\beamertemplatearticlebibitems
+	\bibitem{}
+	W.~Majoros, M.~Pertea, S.~Salzberg
+	\newblock Efficient implementation of a generalized pair hidden Markov model for comparative gene finding, 2005
 
-\bibitem{LocalizationLandmarkTracking}
-   	R.~Azad, M.~Borodovsky
-   	\newblock Probabilistic methods of identifying genes in prokaryotic genomes: Connections to the HMM theory, 2004
-   	
-   	\bibitem{LocalizationLandmarkTracking}
-   	M.~Zhang
-   	\newblock Computational prediction of eucaryotic protein-coding genes, 2002
-   	
-   		\bibitem{LocalizationLandmarkTracking}
-   	C.~Burge, S.~Karlin
-   	\newblock Prediction of complete gene structures in human genomic DNA   	
+	\bibitem{}
+	L.~Stein
+	\newblock Genome Annotation: From sequence to biology, 2001
+	
+	\bibitem{}
+	B.~Yoon
+	\newblock Hidden Markov Models and their Applications in Biological Sequence Analysis, 2009
+
+	\bibitem{}
+	S.~Maji, D.~Garg  	
+	\newblock Progress in Gene Prediction: Principles and Challenges, 2013
+	
+	\bibitem{}
+	R.~Sleator 	
+	\newblock An overview of the current status of eukaryote gene prediction strategies, 2010
+
+	\bibitem{}
+	A.~Lomsadze, V.~Ter-Hovhannisyan, Y.~Chernoff, M.~Borodovsky
+	\newblock Gene identification in novel eukaryotic genomes by self-training algorithm, 2005
+
+	\bibitem{}
+	R.~Azad, M.~Borodovsky
+	\newblock Probabilistic methods of identifying genes in prokaryotic genomes: Connections to the HMM theory, 2004
+
+	\bibitem{}
+	M.~Zhang
+	\newblock Computational prediction of eucaryotic protein-coding genes, 2002
+
+	\bibitem{}
+	C.~Burge, S.~Karlin
+	\newblock Prediction of complete gene structures in human genomic DNA, 1997  	
   \end{thebibliography}
 \end{frame}
-
-
-%%in part 2 give an example of a chain to explain states 
-
-
-% results : methods of deciding accuracy etc 
-
-
-% mettre en forme tableau 
-
-
 
 
 \end{document}
