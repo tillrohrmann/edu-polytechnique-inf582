@@ -61,6 +61,15 @@
 \setbeamercovered{transparent}
 %\setbeamertemplate{navigation symbols}{} %% Abschalten der Navigation
 
+ \AtBeginSection[]
+ {
+   %\logo{}
+   \begin{frame}
+     %\frametitle{Übersicht}
+     \tableofcontents[current,hideothersubsections,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
+   \end{frame}%\note{}
+ }
+
 \title{Gene prediction with hidden Markov models}
 \subtitle{INF 582 - Datamining}
 \author[T. Rohrmann \& D. Arnol]{Till Rohrmann \& Damien Arnol}
@@ -81,8 +90,8 @@
 \frametitle{Motivation}
 	\begin{figure}[h]
 		\centering
-		%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/wtdv027274.jpg}<1>
-		%\includegraphics[width=0.85\textwidth]{../picturesforthepresentation/DNAsequencingCost.jpg}<2>		
+		\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/wtdv027274.jpg}<1>
+		\includegraphics[width=0.85\textwidth]{../picturesforthepresentation/DNAsequencingCost.jpg}<2>		
 	\end{figure}
 \end{frame}
 
@@ -103,8 +112,8 @@
 		\column{0.50\textwidth}
 		\begin{figure}[h]
 			\centering
-			%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM1.png}<1>
-			%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM2.png}<2>		
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM1.png}<1>
+			\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/HMM2.png}<2>		
 		\end{figure}
 		
 		\column{0.50\textwidth}
@@ -178,9 +187,7 @@ x_{T} = argmax_{x \in S}\big(V_{T,x}\big)
 
 \begin{frame}
 \frametitle{Learning algorithm}
-%\begin{figure}[h]
-%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/baumwelch.png}
-%\end{figure}
+
 	\begin{itemize}
 		\item Baum-Welch learning algorithm
 		\item Tweak: Annotate sequence with structure information
@@ -244,9 +251,8 @@ x_{T} = argmax_{x \in S}\big(V_{T,x}\big)
 	
 	\begin{itemize}
 		\item $\#$States=$94$, $\#$Transitions=$218$
-		\item ?? 5' Splice sites are 9-stage models
-		\item ?? 3' Splice sites are 15-stage models
-		\item ?? Poly-A sites are 6-stage models
+		\item 5' Splice sites are 9-stage models
+		\item 3' Splice sites are 15-stage models
 	\end{itemize}
 	
 	\pause\begin{center}
@@ -258,18 +264,8 @@ x_{T} = argmax_{x \in S}\big(V_{T,x}\big)
 \begin{frame}
 \frametitle{Explanation of the multiple-stage models}
 	\begin{figure}
-		%\includegraphics[width=0.9\textwidth]{../picturesforthepresentation/Stages_viterbi.png}
+		\includegraphics[width=0.9\textwidth]{../picturesforthepresentation/Stages_viterbi.png}
 	\end{figure}
-	
-%	\begin{itemize}
-%		\item 5' Splice sites are 9-stage models
-%		\item 3' Splice sites are 5-stage models
-%		\item Poly-A sites are 6-stage models 
-%	\end{itemize}
-	
-%	\pause\begin{center}
-%		\textbf{the different several-stages models work like autonomous HMMs}
-%	\end{center}
 	
 \end{frame}
 
@@ -277,10 +273,10 @@ x_{T} = argmax_{x \in S}\big(V_{T,x}\big)
 \begin{frame}
 \frametitle{Automaton Representation}
 	\begin{figure}
-		%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/exon_auto.png}
+		\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/exon_auto.png}
 	\end{figure}
 	\begin{figure}
-		%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/donnor_auto.png}
+		\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/donnor_auto.png}
 	\end{figure}
 	\pause\begin{center}
 		\textbf{The donnor model is only a chain}
@@ -291,7 +287,7 @@ x_{T} = argmax_{x \in S}\big(V_{T,x}\big)
 \begin{frame}
 \frametitle{Additional structure information: The Poly-A site model}
 	\begin{figure}
-		%\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/PolyA.png}
+		\includegraphics[width=1.0\textwidth]{../picturesforthepresentation/PolyA.png}
 	\end{figure}
 	
 	\textbf{A concensus sequence : A A A T A A}
@@ -302,7 +298,7 @@ x_{T} = argmax_{x \in S}\big(V_{T,x}\big)
 		\item Needs almost no training 
 	\end{itemize}
 	
-	\textbf{Start and Stop codon behave similar}
+	\textbf{Start and Stop codon behave similarly}
 \end{frame}
 
 \begin{frame}
